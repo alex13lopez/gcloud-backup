@@ -1,6 +1,6 @@
 # Name: Gcloud Backup
 # Author: alopez
-# Version: 4.1
+# Version: 4.2
 
 ### Var declaration
 $dateLogs    = Get-Date -UFormat "%Y%m%d"
@@ -20,8 +20,15 @@ function getTime() {
 	echo ("Uploading Backups to Gcloud... Job started at " + $timeNow)
 
 	foreach ($path in $backupPaths) {
-		$dir = $path -replace '.*\\'
-		gsutil -m rsync -d  -r "$path" "gs://srvbackuphid/backups/$dir"
+		$dirName = $path -replace '.*\\'
+		
+		$timeNow = getTime
+		echo ("Uploading $dirName to Gcloud... Job started at " + $timeNow)
+		
+		gsutil -m rsync -d  -r "$path" "gs://srvbackuphid/backups/$dirName"
+		
+		$timeNow = getTime
+		echo ("Uploading $dirName to Gcloud... Job Finished at " + $timeNow)
 	}
 
 	$timeNow = getTime
