@@ -1,38 +1,111 @@
 # Name: Gcloud Backup
-# Author: alopez
-# Version: 4.2
+# Author: alopez@hidalgosgroup.com
+# Version: 5.2a
 
-### Var declaration
+########## Var & parms declaration #####################################################
+param([Parameter(Mandatory = $false)][switch]$clean = $false, [Parameter(Mandatory = $false)][switch]$removeOld = $false)
 $dateLogs    = Get-Date -UFormat "%Y%m%d"
-$logFile     = "C:\Users\Admin\Desktop\GcloudLogs\logFile_$dateLogs.txt"
-$outputFile    = "C:\Users\Admin\Desktop\GcloudLogs\outputFile_$dateLogs.txt"
-$backupPaths = @("\\172.26.0.97\VeeamBackup\NAS_backup interno AX_QV_DC","\\172.26.0.97\VeeamBackup\NAS_backup interno Resto")
-###
+$logDir      = "C:\Users\Admin\Desktop\GcloudLogs"
+$logFile     = "$logDir\logFile_$dateLogs.txt"
+$outputFile  = "$logDir\outputFile_$dateLogs.txt"
+$cleanLog    = "$logDir\cleanLogFile_$dateLogs.txt"
+$backupPaths = @("\\172.26.0.97\VeeamBackup\Backup-AX_QV_DC-F","\\172.26.0.97\VeeamBackup\Backup-Resto-F")
+$serverPath = "gs://srvbackuphidreborn/testBackups"
+$daysToKeepBK  = 8 # Restamos 8 días, así, en caso de que sea Domingo, podemos restaurar la última completa que se hizo el Sábado anterior
+$debug = $True
+
+#########################################################################################
 
 function getTime() {
 	return Get-Date -UFormat "%d-%m-%Y @ %H:%M"
 }
 
 
-# We wrap all the code so we can send all the stdout and stderr to files in a single line
-&{
-	$timeNow = getTime
-	echo ("Uploading Backups to Gcloud... Job started at " + $timeNow)
+function autoClean() {
 
-	foreach ($path in $backupPaths) {
-		$dirName = $path -replace '.*\\'
+		$currYear = Get-Date -UFormat "%Y"
+		$prevYear = $currYear - 1
 		
-		$timeNow = getTime
-		echo ("Uploading $dirName to Gcloud... Job started at " + $timeNow)
+		&{
+			
+			$timeNow = getTime
+			echo ("Autocleaning started at " + $timeNow)
+				
+			rm "$logDir\*_$prevYear*"
+				
+			$timeNow = getTime
+			echo ("Autocleaning finished at " + $timeNow)
+			
+		} 2> 1 1> $cleanLog
 		
-		gsutil -m rsync -d  -r "$path" "gs://srvbackuphid/backups/$dirName"
+}
+
+
+function removeOldBackups() {
+	
+	$lastWeek = (Get-Date (Get-Date).AddDays($daysToKeepBK * (-1)) -UFormat "%Y%m%d") # Cambiamos a negativo el $daysToKeepBK para restar dias
+	
+	$files = @(gsutil ls -R "$serverPath" | Select-String -Pattern "\..*$")
+	
+	if (! [string]::IsNullOrEmpty($files)) {
+		foreach ($file in $files) {
 		
-		$timeNow = getTime
-		echo ("Uploading $dirName to Gcloud... Job Finished at " + $timeNow)
+			$fileName = ($file -Split "/")[-1]
+			$fileDate = ((($file -Split "F")[1] -Split "T")[0]) -Replace '[-]'
+			$fileExt = $fileName -Replace "^.*\."
+			
+			if ($fileExt -ne "vbm" ) { # We skip '.vbm' files since they are always the same and don't have date on it
+				if ($debug) {"FileName: $fileName || fileDate: $fileDate" }
+				
+				if ($fileDate -lt $lastWeek) {
+					echo "The file: '$fileName' date is older than $daysToKeepBK... Wiping out!"
+					if (!$debug) {				
+						gsutil rm -a "$file"
+					}
+				}
+			}
+		}
 	}
+	else {echo "Could not get the files"}
+	
+}
 
-	$timeNow = getTime
-	echo ("Uploading Backups to Gcloud... Job Finished at " + $timeNow)
 
-}  2> $outputFile 1> $logFile
+function doUpload() {
+
+	# We wrap all the code so we can send all the stdout and stderr to files in a single line
+	&{
+		
+		$timeNow = getTime
+		echo ("Uploading Backups to Gcloud... Job started at " + $timeNow)
+
+		foreach ($path in $backupPaths) {
+			$dirName = $path -replace '.*\\'
+			
+			$timeNow = getTime
+			echo ("Uploading $dirName to Gcloud... Job started at " + $timeNow)
+			
+			gsutil -m rsync -d  -r "$path" "$serverPath/$dirName"
+			
+			$timeNow = getTime
+			echo ("Uploading $dirName to Gcloud... Job Finished at " + $timeNow)
+		}
+
+		$timeNow = getTime
+		echo ("Uploading Backups to Gcloud... Job Finished at " + $timeNow)
+
+	}  2> $outputFile 1> $logFile
+	
+}
+
+
+if ($clean) {
+	autoClean
+} 
+elseif ($removeOld) {
+	removeOldBackups
+} 
+else {
+	doUpload
+}
 
