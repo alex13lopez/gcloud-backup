@@ -1,18 +1,21 @@
 # Name: Gcloud Backup
 # Author: Alex López <arendevel@gmail.com> || <alopez@hidalgosgroup.com>
-# Version: 5.2a
+# Version: 5.2.1a
 
 ########## Var & parms declaration #####################################################
-param([Parameter(Mandatory = $false)][switch]$clean = $false, [Parameter(Mandatory = $false)][switch]$removeOld = $false)
-$dateLogs    = Get-Date -UFormat "%Y%m%d"
-$logDir      = "C:\Users\Admin\Desktop\GcloudLogs"
-$logFile     = "$logDir\logFile_$dateLogs.txt"
-$outputFile  = "$logDir\outputFile_$dateLogs.txt"
-$cleanLog    = "$logDir\cleanLogFile_$dateLogs.txt"
-$backupPaths = @("\\172.26.0.97\VeeamBackup\Backup-AX_QV_DC-F","\\172.26.0.97\VeeamBackup\Backup-Resto-F")
-$serverPath = "gs://srvbackuphidreborn/testBackups"
+param(
+	[Parameter(Mandatory = $false)][switch]$clean = $false, 
+	[Parameter(Mandatory = $false)][switch]$removeOld = $false,
+	[Parameter(Mandatory = $false)][switch]$dryRun = $true # For now, we'll always go with dry run mode, until everything works like a charm
+	)
+$dateLogs      = Get-Date -UFormat "%Y%m%d"
+$logDir        = "C:\Users\Admin\Desktop\GcloudLogs"
+$logFile       = "$logDir\logFile_$dateLogs.txt"
+$outputFile    = "$logDir\outputFile_$dateLogs.txt"
+$cleanLog      = "$logDir\cleanLogFile_$dateLogs.txt"
+$backupPaths   = @("\\172.26.0.97\VeeamBackup\Backup-AX_QV_DC-F","\\172.26.0.97\VeeamBackup\Backup-Resto-F")
+$serverPath    = "gs://srvbackuphidreborn/backups"
 $daysToKeepBK  = 8 # Restamos 8 días, así, en caso de que sea Domingo, podemos restaurar la última completa que se hizo el Sábado anterior
-$debug = $True
 
 #########################################################################################
 
@@ -26,17 +29,21 @@ function autoClean() {
 		$currYear = Get-Date -UFormat "%Y"
 		$prevYear = $currYear - 1
 		
+		
 		&{
-			
+				
 			$timeNow = getTime
 			echo ("Autocleaning started at " + $timeNow)
-				
-			rm "$logDir\*_$prevYear*"
+			
+			if (!$dryRun) {
+				rm "$logDir\*_$prevYear*"
+			}
 				
 			$timeNow = getTime
 			echo ("Autocleaning finished at " + $timeNow)
 			
 		} 2> 1 1> $cleanLog
+		
 		
 }
 
@@ -51,15 +58,19 @@ function removeOldBackups() {
 		foreach ($file in $files) {
 		
 			$fileName = ($file -Split "/")[-1]
-			$fileDate = ((($file -Split "F")[1] -Split "T")[0]) -Replace '[-]'
+			$fileDate = ((($file -Split "F")[1] -Split "T")[0]) -Replace "[-]"
 			$fileExt = $fileName -Replace "^.*\."
 			
 			if ($fileExt -ne "vbm" ) { # We skip '.vbm' files since they are always the same and don't have date on it
-				if ($debug) {"FileName: $fileName || fileDate: $fileDate" }
+				if ($dryRun) {
+					echo "File: $file"
+					echo "FileName: $fileName || fileDate: $fileDate" 
+					echo ""
+				}
 				
 				if ($fileDate -lt $lastWeek) {
-					echo "The file: '$fileName' date is older than $daysToKeepBK... Wiping out!"
-					if (!$debug) {				
+					echo "The file: '$fileName' is older than $daysToKeepBK days... Wiping out!"
+					if (!$dryRun) {				
 						gsutil rm -a "$file"
 					}
 				}
@@ -85,7 +96,9 @@ function doUpload() {
 			$timeNow = getTime
 			echo ("Uploading $dirName to Gcloud... Job started at " + $timeNow)
 			
-			gsutil -m rsync -d  -r "$path" "$serverPath/$dirName"
+			if (!dryRun) {
+				gsutil -m rsync -d  -r "$path" "$serverPath/$dirName"
+			}
 			
 			$timeNow = getTime
 			echo ("Uploading $dirName to Gcloud... Job Finished at " + $timeNow)
