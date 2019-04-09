@@ -2,18 +2,20 @@
 
 $logDir = "C:\Gcloud\GcloudLogs"
 
-try {
+[array]$files = Get-ChildItem "$logDir\*.txt" | select -expand fullname
 
-	[array]$files = Get-ChildItem "$logDir\*.txt" | select -expand fullname
+foreach ($file in $files) {
+
+	$fileDate = ($file -Split "_")[1] -Replace "\..*$"
 	
-	foreach ($file in $files) {
-		$fileDate = ($file -Split "_")[1] -Replace "\..*$"
-		
-		mkdir "$logDir\$fileDate" -ErrorAction Stop 2>&1> $null
+	try { 
 		mv "$file" "$logDir\$fileDate\" -ErrorAction Stop	
 	}
+	catch [System.IO.IOException] {
+		mkdir "$logDir\$fileDate" -ErrorAction Continue 2>&1> $null			
+		mv "$file" "$logDir\$fileDate\" -ErrorAction Continue
+	}
+	
+}
 		
-}
-catch {
-	Write-Host 'Unknown error. Caught exception:' $_.Exception.GetType().FullName -fore red -back black
-}
+
