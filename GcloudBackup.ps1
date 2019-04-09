@@ -1,6 +1,6 @@
 # Name: Gcloud Backup
 # Author: Alex López <arendevel@gmail.com> || <alopez@hidalgosgroup.com>
-# Version: 5.2.1a
+# Version: 5.4b
 
 ########## Var & parms declaration #####################################################
 param(
@@ -11,8 +11,9 @@ param(
 $dateLogs      = Get-Date -UFormat "%Y%m%d"
 $logDir        = "C:\Users\Admin\Desktop\GcloudLogs"
 $logFile       = "$logDir\logFile_$dateLogs.txt"
-$outputFile    = "$logDir\outputFile_$dateLogs.txt"
+$errorLog    = "$logDir\errorLog_$dateLogs.txt"
 $cleanLog      = "$logDir\cleanLogFile_$dateLogs.txt"
+$removeErrorLog    = "$logDir\errorLog_$dateLogs.txt"
 $backupPaths   = @("\\172.26.0.97\VeeamBackup\Backup-AX_QV_DC-F","\\172.26.0.97\VeeamBackup\Backup-Resto-F")
 $serverPath    = "gs://srvbackuphidreborn/backups"
 $daysToKeepBK  = 8 # Restamos 8 días, así, en caso de que sea Domingo, podemos restaurar la última completa que se hizo el Sábado anterior
@@ -55,11 +56,15 @@ function removeOldBackups() {
 	$files = @(gsutil ls -R "$serverPath" | Select-String -Pattern "\..*$")
 	
 	if (! [string]::IsNullOrEmpty($files)) {
+	
+		$timeNow = getTime
+	    echo ("Removing old backup files' job started at " + $timeNow) 1>> $logFile
+		
 		foreach ($file in $files) {
 		
 			$fileName = ($file -Split "/")[-1]
 			$fileDate = ((($file -Split "F")[1] -Split "T")[0]) -Replace "[-]"
-			$fileExt = $fileName -Replace "^.*\."
+			$fileExt = ($fileName -Split ".")[-1]
 			
 			if ($fileExt -ne "vbm" ) { # We skip '.vbm' files since they are always the same and don't have date on it
 				if ($dryRun) {
@@ -68,14 +73,21 @@ function removeOldBackups() {
 					echo ""
 				}
 				
-				if ($fileDate -lt $lastWeek) {
-					echo "The file: '$fileName' is older than $daysToKeepBK days... Wiping out!"
-					if (!$dryRun) {				
-						gsutil rm -a "$file"
+				&{
+				
+					if ($fileDate -lt $lastWeek) {
+						echo "The file: '$fileName' is older than $daysToKeepBK days... Wiping out!"
+						if (!$dryRun) {				
+							gsutil -m -q rm -a "$file" # -m makes the operation multithreaded. -q causes gsutil to be quiet, basically: No progress reporting, only errors
+						}
 					}
-				}
+					
+				} 2>> $removeErrorLog 1>> $logFile 
 			}
 		}
+		
+		$timeNow = getTime
+	    echo ("Removing old backup files' job finished at " + $timeNow) 1>> $logFile 
 	}
 	else {echo "Could not get the files"}
 	
@@ -91,13 +103,13 @@ function doUpload() {
 		echo ("Uploading Backups to Gcloud... Job started at " + $timeNow)
 
 		foreach ($path in $backupPaths) {
-			$dirName = $path -replace '.*\\'
+			$dirName = $path -replace '.*\\'	
 			
 			$timeNow = getTime
 			echo ("Uploading $dirName to Gcloud... Job started at " + $timeNow)
 			
 			if (!dryRun) {
-				gsutil -m rsync -d  -r "$path" "$serverPath/$dirName"
+				gsutil -m -q cp -r "$path" "$serverPath/$dirName"
 			}
 			
 			$timeNow = getTime
@@ -107,7 +119,7 @@ function doUpload() {
 		$timeNow = getTime
 		echo ("Uploading Backups to Gcloud... Job Finished at " + $timeNow)
 
-	}  2> $outputFile 1> $logFile
+	}  2> $errorLog 1> $logFile
 	
 }
 
