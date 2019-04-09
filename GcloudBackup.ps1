@@ -11,10 +11,10 @@ param(
 	
 $dateLogs      = Get-Date -UFormat "%Y%m%d"
 $logDir        = "C:\Users\Admin\Desktop\GcloudLogs"
-$logFile       = "$logDir\logFile_$dateLogs.txt"
-$errorLog    = "$logDir\errorLog_$dateLogs.txt"
-$cleanLog      = "$logDir\cleanLogFile_$dateLogs.txt"
-$removeErrorLog    = "$logDir\errorLog_$dateLogs.txt"
+$logFile       = "$logDir\$dateLogs\logFile.txt"
+$errorLog    = "$logDir\$dateLogs\errorLog.txt"
+$cleanLog      = "$logDir\$dateLogs\cleanLogFile.txt"
+$removeErrorLog    = "$logDir\$dateLogs\revomeOldErrorLog.txt"
 $backupPaths   = @("\\172.26.0.97\VeeamBackup\Backup-AX_QV_DC-F","\\172.26.0.97\VeeamBackup\Backup-Resto-F") #TO DO: Add VeeamBackupConfig & Replicas
 $serverPath    = "gs://srvbackuphidreborn/backups"
 $daysToKeepBK  = 8 # 8 days because in case it's Sunday we'll keep the last full backup made on last Saturday
