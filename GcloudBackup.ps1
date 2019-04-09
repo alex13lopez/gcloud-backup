@@ -1,6 +1,6 @@
 # Name: Gcloud Backup
 # Author: Alex López <arendevel@gmail.com> || <alopez@hidalgosgroup.com>
-# Version: 6.1a
+# Version: 6.2a
 
 ########## Var & parms declaration #####################################################
 param(
@@ -11,8 +11,7 @@ param(
 	)
 	
 $dateLogs          = Get-Date -UFormat "%Y%m%d"
-#$logDir            = "C:\Users\Admin\Desktop\GcloudLogs"
-$logDir            = "Y:\test"
+$logDir            = "C:\Users\Admin\Desktop\GcloudLogs"
 $logFile           = "$logDir\$dateLogs\logFile.txt"
 $errorLog          = "$logDir\$dateLogs\errorLog.txt"
 $cleanLog          = "$logDir\$dateLogs\cleanLogFile.txt"
@@ -29,7 +28,7 @@ function getTime() {
 }
 
 function createLogFolder() {
-	mkdir "$logDir\$dateLogs" -ErrorAction Continue 2>&1> $null
+	mkdir "$logDir\$dateLogs" -ErrorAction Continue 2>1 1> $null
 }
 
 function autoClean() {
@@ -44,7 +43,7 @@ function autoClean() {
 			echo ("Autocleaning started at " + $timeNow)
 			
 			if (!$dryRun) {
-				rm "$logDir\*_$prevYear*"
+				rm "$logDir\*$prevYear*"
 			}
 				
 			$timeNow = getTime
@@ -72,32 +71,24 @@ function removeOldBackups() {
 			foreach ($file in $files) {
 			
 				$fileName = ($file -Split "/")[-1]
-				$fileDate = ((($file -Split "F")[1] -Split "T")[0]) -Replace "[-]"
-				$fileExt = ($fileName -Split ".")[-1]
+				$fileDate = ((($file -Split "F")[-1] -Split "T")[0]) -Replace '-'
+				$fileExt  = ($fileName -Split "\.")[-1]
 				
-				
-					if ($fileExt -ne "vbm") { # We skip '.vbm' files since they are always the same and don't have date on it
-						if ($dryRun) {
-							echo "File: $file"
-							echo "FileName: $fileName || fileDate: $fileDate" 
-							echo ""
-						}
-						
-						
-						
+					if ($fileExt -ne "vbm") { # We skip '.vbm' files since they are always the same and don't have date on it					
+							
 							if ($fileDate -lt $lastWeek) {
 								echo "The file: '$fileName' is older than $daysToKeepBK days... Wiping out!"
+													
 								if (!$dryRun) {				
 									gsutil -m -q rm -a "$file" # -m makes the operation multithreaded. -q causes gsutil to be quiet, basically: No progress reporting, only errors
 								}
 							}
-							
-						 
+											
 					}
 				 
 			}
 			
-		} 2>> $removeErrorLog 1>> $removeLogFile
+		} 2>> $removeErrorLog 1> $removeLogFile
 		
 		$timeNow = getTime
 	    echo ("Removing old backup files' job finished at " + $timeNow) 1>> $logFile 
