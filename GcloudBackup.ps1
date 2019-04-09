@@ -1,17 +1,17 @@
 # Name: Gcloud Backup
 # Author: Alex López <arendevel@gmail.com> || <alopez@hidalgosgroup.com>
-# Version: 6.2a
+# Version: 6.2.1a
 
 ########## Var & parms declaration #####################################################
 param(
     [Parameter(Mandatory = $false)][switch]$all       = $false,
 	[Parameter(Mandatory = $false)][switch]$clean     = $false, 
 	[Parameter(Mandatory = $false)][switch]$removeOld = $false,
-	[Parameter(Mandatory = $false)][switch]$dryRun    = $true
+	[Parameter(Mandatory = $false)][switch]$dryRun    = $false
 	)
 	
 $dateLogs          = Get-Date -UFormat "%Y%m%d"
-$logDir            = "C:\Users\Admin\Desktop\GcloudLogs"
+$logDir            = "C:\Gcloud\GcloudLogs"
 $logFile           = "$logDir\$dateLogs\logFile.txt"
 $errorLog          = "$logDir\$dateLogs\errorLog.txt"
 $cleanLog          = "$logDir\$dateLogs\cleanLogFile.txt"
@@ -28,14 +28,13 @@ function getTime() {
 }
 
 function createLogFolder() {
-	mkdir "$logDir\$dateLogs" -ErrorAction Continue 2>1 1> $null
+	mkdir "$logDir\$dateLogs" -ErrorAction Continue 2>&1> $null
 }
 
 function autoClean() {
 
 		$currYear = Get-Date -UFormat "%Y"
-		$prevYear = $currYear - 1
-		
+		$prevYear = $currYear - 1	
 		
 		&{
 				
@@ -49,7 +48,7 @@ function autoClean() {
 			$timeNow = getTime
 			echo ("Autocleaning finished at " + $timeNow)
 			
-		} 2>>1 1>> $logFile
+		} 2>> $errorLog 1>> $logFile
 		
 		
 }
