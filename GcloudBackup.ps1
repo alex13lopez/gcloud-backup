@@ -8,15 +8,16 @@ param(
 	[Parameter(Mandatory = $false)][switch]$removeOld = $false,
 	[Parameter(Mandatory = $false)][switch]$dryRun = $true # For now, we'll always go with dry run mode, until everything works like a charm
 	)
+	
 $dateLogs      = Get-Date -UFormat "%Y%m%d"
 $logDir        = "C:\Users\Admin\Desktop\GcloudLogs"
 $logFile       = "$logDir\logFile_$dateLogs.txt"
 $errorLog    = "$logDir\errorLog_$dateLogs.txt"
 $cleanLog      = "$logDir\cleanLogFile_$dateLogs.txt"
 $removeErrorLog    = "$logDir\errorLog_$dateLogs.txt"
-$backupPaths   = @("\\172.26.0.97\VeeamBackup\Backup-AX_QV_DC-F","\\172.26.0.97\VeeamBackup\Backup-Resto-F")
+$backupPaths   = @("\\172.26.0.97\VeeamBackup\Backup-AX_QV_DC-F","\\172.26.0.97\VeeamBackup\Backup-Resto-F") #TO DO: Add VeeamBackupConfig & Replicas
 $serverPath    = "gs://srvbackuphidreborn/backups"
-$daysToKeepBK  = 8 # Restamos 8 días, así, en caso de que sea Domingo, podemos restaurar la última completa que se hizo el Sábado anterior
+$daysToKeepBK  = 8 # 8 days because in case it's Sunday we'll keep the last full backup made on last Saturday
 
 #########################################################################################
 
@@ -55,7 +56,7 @@ function removeOldBackups() {
 	
 	$files = @(gsutil ls -R "$serverPath" | Select-String -Pattern "\..*$")
 	
-	if (! [string]::IsNullOrEmpty($files)) {
+	if (! [string]::IsNullOrEmpty($files)) { 
 	
 		$timeNow = getTime
 	    echo ("Removing old backup files' job started at " + $timeNow) 1>> $logFile
@@ -66,7 +67,7 @@ function removeOldBackups() {
 			$fileDate = ((($file -Split "F")[1] -Split "T")[0]) -Replace "[-]"
 			$fileExt = ($fileName -Split ".")[-1]
 			
-			if ($fileExt -ne "vbm" ) { # We skip '.vbm' files since they are always the same and don't have date on it
+			if ($fileExt -ne "vbm") { # We skip '.vbm' files since they are always the same and don't have date on it
 				if ($dryRun) {
 					echo "File: $file"
 					echo "FileName: $fileName || fileDate: $fileDate" 
