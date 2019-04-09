@@ -1,6 +1,6 @@
 # Name: Gcloud Backup
 # Author: Alex López <arendevel@gmail.com> || <alopez@hidalgosgroup.com>
-# Version: 5.4b
+# Version: 6.0a
 
 ########## Var & parms declaration #####################################################
 param(
