@@ -1,6 +1,6 @@
 # Name: Gcloud Backup
 # Author: Alex López <arendevel@gmail.com> || <alopez@hidalgosgroup.com>
-# Version: 6.2.1a
+# Version: 6.2.2a
 
 ########## Var & parms declaration #####################################################
 param(
@@ -106,17 +106,17 @@ function doUpload() {
 		echo ("Uploading Backups to Gcloud... Job started at " + $timeNow)
 
 		foreach ($path in $backupPaths) {
-			$dirName = $path -replace '.*\\'	
-			
+		
 			$timeNow = getTime
 			echo ("Uploading $dirName to Gcloud... Job started at " + $timeNow)
 			
 			if (!$dryRun) {
-				gsutil -m -q cp -r "$path" "$serverPath/$dirName"
+				gsutil -m -q cp -r "$path" "$serverPath"
 			}
 			
 			$timeNow = getTime
 			echo ("Uploading $dirName to Gcloud... Job Finished at " + $timeNow)
+			
 		}
 
 		$timeNow = getTime
