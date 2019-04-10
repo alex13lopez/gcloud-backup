@@ -1,6 +1,6 @@
 # Name: Gcloud Backup
 # Author: Alex López <arendevel@gmail.com> || <alopez@hidalgosgroup.com>
-# Version: 6.2.2a
+# Version: 6.3a
 
 ########## Var & parms declaration #####################################################
 param(
@@ -106,12 +106,15 @@ function doUpload() {
 		echo ("Uploading Backups to Gcloud... Job started at " + $timeNow)
 
 		foreach ($path in $backupPaths) {
-		
+			$dirName = $path -replace '.*\\'
+			
 			$timeNow = getTime
 			echo ("Uploading $dirName to Gcloud... Job started at " + $timeNow)
 			
 			if (!$dryRun) {
-				gsutil -m -q cp -r "$path" "$serverPath"
+				# Changed back to rsync because copy does copy all the files whether they are changed or not
+				# But now, -d option is skipped since we deal with the old backup files manually with removeOldBackups
+				gsutil -m -q rsync -r "$path" "$serverPath/$dirName"
 			}
 			
 			$timeNow = getTime
