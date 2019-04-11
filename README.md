@@ -1,0 +1,1 @@
+This software is provided "as is" with absolute no waranty. Use this under your own responsibility.
