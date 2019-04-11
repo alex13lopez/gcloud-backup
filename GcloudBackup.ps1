@@ -1,6 +1,6 @@
 # Name: Gcloud Backup
 # Author: Alex López <arendevel@gmail.com> || <alopez@hidalgosgroup.com>
-# Version: 6.3a
+# Version: 6.3.1a
 
 ########## Var & parms declaration #####################################################
 param(
@@ -110,6 +110,14 @@ function doUpload() {
 			
 			$timeNow = getTime
 			echo ("Uploading $dirName to Gcloud... Job started at " + $timeNow)
+			
+			# In case the first upload takes more than 24h we make sure that there is a folder for today's logs
+			try {
+				createLogFolder
+			}
+			catch {
+				continue
+			}
 			
 			if (!$dryRun) {
 				# Changed back to rsync because copy does copy all the files whether they are changed or not
