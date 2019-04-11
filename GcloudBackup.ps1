@@ -1,23 +1,25 @@
 # Name: Gcloud Backup
 # Author: Alex López <arendevel@gmail.com> || <alopez@hidalgosgroup.com>
-# Version: 5.4b
+# Version: 6.3.1b
 
 ########## Var & parms declaration #####################################################
 param(
-	[Parameter(Mandatory = $false)][switch]$clean = $false, 
+    [Parameter(Mandatory = $false)][switch]$all       = $false,
+	[Parameter(Mandatory = $false)][switch]$clean     = $false, 
 	[Parameter(Mandatory = $false)][switch]$removeOld = $false,
-	[Parameter(Mandatory = $false)][switch]$dryRun = $true # For now, we'll always go with dry run mode, until everything works like a charm
+	[Parameter(Mandatory = $false)][switch]$dryRun    = $false
 	)
 	
-$dateLogs      = Get-Date -UFormat "%Y%m%d"
-$logDir        = "C:\Users\Admin\Desktop\GcloudLogs"
-$logFile       = "$logDir\logFile_$dateLogs.txt"
-$errorLog    = "$logDir\errorLog_$dateLogs.txt"
-$cleanLog      = "$logDir\cleanLogFile_$dateLogs.txt"
-$removeErrorLog    = "$logDir\removeErrorLog_$dateLogs.txt"
-$backupPaths   = @("\\172.26.0.97\VeeamBackup\Backup-AX_QV_DC-F","\\172.26.0.97\VeeamBackup\Backup-Resto-F") #TO DO: Add VeeamBackupConfig & Replicas
-$serverPath    = "gs://srvbackuphidreborn/backups"
-$daysToKeepBK  = 8 # 8 days because in case it's Sunday we'll keep the last full backup made on last Saturday
+$dateLogs          = Get-Date -UFormat "%Y%m%d"
+$logDir            = "C:\Gcloud\GcloudLogs"
+$logFile           = "$logDir\$dateLogs\logFile.txt"
+$errorLog          = "$logDir\$dateLogs\errorLog.txt"
+$cleanLog          = "$logDir\$dateLogs\cleanLogFile.txt"
+$removeLogFile     = "$logDir\$dateLogs\removeLogFile.txt"
+$removeErrorLog    = "$logDir\$dateLogs\removeOldErrorLog.txt"
+$backupPaths       = @("\\172.26.0.97\VeeamBackup\Backup-AX_QV_DC-F","\\172.26.0.97\VeeamBackup\Backup-Resto-F") #TO DO: Add VeeamBackupConfig & Replicas
+$serverPath        = "gs://srvbackuphidreborn/backups"
+$daysToKeepBK      = 8 # 8 days because in case it's Sunday we'll keep the last full backup made on last Saturday
 
 #########################################################################################
 
@@ -25,12 +27,14 @@ function getTime() {
 	return Get-Date -UFormat "%d-%m-%Y @ %H:%M"
 }
 
+function createLogFolder() {
+	mkdir "$logDir\$dateLogs" -ErrorAction Continue 2>&1> $null
+}
 
 function autoClean() {
 
 		$currYear = Get-Date -UFormat "%Y"
-		$prevYear = $currYear - 1
-		
+		$prevYear = $currYear - 1	
 		
 		&{
 				
@@ -38,13 +42,13 @@ function autoClean() {
 			echo ("Autocleaning started at " + $timeNow)
 			
 			if (!$dryRun) {
-				rm "$logDir\*_$prevYear*"
+				rm "$logDir\*$prevYear*"
 			}
 				
 			$timeNow = getTime
 			echo ("Autocleaning finished at " + $timeNow)
 			
-		} 2> 1 1> $cleanLog
+		} 2>> $errorLog 1>> $logFile
 		
 		
 }
@@ -61,31 +65,29 @@ function removeOldBackups() {
 		$timeNow = getTime
 	    echo ("Removing old backup files' job started at " + $timeNow) 1>> $logFile
 		
-		foreach ($file in $files) {
+		&{
 		
-			$fileName = ($file -Split "/")[-1]
-			$fileDate = ((($file -Split "F")[1] -Split "T")[0]) -Replace "[-]"
-			$fileExt = ($fileName -Split ".")[-1]
+			foreach ($file in $files) {
 			
-			if ($fileExt -ne "vbm") { # We skip '.vbm' files since they are always the same and don't have date on it
-				if ($dryRun) {
-					echo "File: $file"
-					echo "FileName: $fileName || fileDate: $fileDate" 
-					echo ""
-				}
+				$fileName = ($file -Split "/")[-1]
+				$fileDate = ((($file -Split "F")[-1] -Split "T")[0]) -Replace '-'
+				$fileExt  = ($fileName -Split "\.")[-1]
 				
-				&{
-				
-					if ($fileDate -lt $lastWeek) {
-						echo "The file: '$fileName' is older than $daysToKeepBK days... Wiping out!"
-						if (!$dryRun) {				
-							gsutil -m -q rm -a "$file" # -m makes the operation multithreaded. -q causes gsutil to be quiet, basically: No progress reporting, only errors
-						}
+					if ($fileExt -ne "vbm") { # We skip '.vbm' files since they are always the same and don't have date on it					
+							
+							if ($fileDate -lt $lastWeek) {
+								echo "The file: '$fileName' is older than $daysToKeepBK days... Wiping out!"
+													
+								if (!$dryRun) {				
+									gsutil -m -q rm -a "$file" # -m makes the operation multithreaded. -q causes gsutil to be quiet, basically: No progress reporting, only errors
+								}
+							}
+											
 					}
-					
-				} 2>> $removeErrorLog 1>> $logFile 
+				 
 			}
-		}
+			
+		} 2>> $removeErrorLog 1> $removeLogFile
 		
 		$timeNow = getTime
 	    echo ("Removing old backup files' job finished at " + $timeNow) 1>> $logFile 
@@ -104,34 +106,64 @@ function doUpload() {
 		echo ("Uploading Backups to Gcloud... Job started at " + $timeNow)
 
 		foreach ($path in $backupPaths) {
-			$dirName = $path -replace '.*\\'	
+			$dirName = $path -replace '.*\\'
 			
 			$timeNow = getTime
 			echo ("Uploading $dirName to Gcloud... Job started at " + $timeNow)
 			
-			if (!dryRun) {
-				gsutil -m -q cp -r "$path" "$serverPath/$dirName"
+			# In case the first upload takes more than 24h we make sure that there is a folder for today's logs
+			try {
+				createLogFolder
+			}
+			catch {
+				continue
+			}
+			
+			if (!$dryRun) {
+				# Changed back to rsync because copy does copy all the files whether they are changed or not
+				# But now, -d option is skipped since we deal with the old backup files manually with removeOldBackups
+				gsutil -m -q rsync -r "$path" "$serverPath/$dirName"
 			}
 			
 			$timeNow = getTime
 			echo ("Uploading $dirName to Gcloud... Job Finished at " + $timeNow)
+			
 		}
 
 		$timeNow = getTime
 		echo ("Uploading Backups to Gcloud... Job Finished at " + $timeNow)
 
-	}  2> $errorLog 1> $logFile
+	}  2>> $errorLog 1>> $logFile
 	
 }
 
-
-if ($clean) {
-	autoClean
-} 
-elseif ($removeOld) {
-	removeOldBackups
-} 
-else {
-	doUpload
+try {
+	if ($clean) {
+		createLogFolder
+		autoClean
+	} 
+	elseif ($removeOld) {
+		createLogFolder
+		removeOldBackups
+	}
+	elseif ($All) {
+		createLogFolder
+		autoClean
+		doUpload
+		removeOldBackups
+	}
+	else {
+		createLogFolder
+		doUpload
+	}
 }
+catch [System.IO.DirectoryNotFoundException] {
+	Write-Host 'Please, check that file paths are well configured' -fore red -back black
+}
+catch {
+	# We catch all exceptions and show the fullname of the exception so we can handle it better
+	Write-Host 'Unknown error. Caught exception:' $_.Exception.GetType().FullName -fore red -back black
+}
+
+
 
