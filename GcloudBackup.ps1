@@ -1,6 +1,6 @@
 # Name: Gcloud Backup
 # Author: Alex López <arendevel@gmail.com> || <alopez@hidalgosgroup.com>
-# Version: 6.3.1b
+# Version: 6.3.2b
 
 ########## Var & parms declaration #####################################################
 param(
@@ -37,6 +37,9 @@ function autoClean() {
 		$prevYear = $currYear - 1	
 		
 		&{
+			if ($dryRun) {
+				echo "Running in 'dryRun' mode: No changes will be made."
+			}
 				
 			$timeNow = getTime
 			echo ("Autocleaning started at " + $timeNow)
@@ -66,6 +69,9 @@ function removeOldBackups() {
 	    echo ("Removing old backup files' job started at " + $timeNow) 1>> $logFile
 		
 		&{
+			if ($dryRun) {
+				echo "Running in 'dryRun' mode: No changes will be made."
+			}
 		
 			foreach ($file in $files) {
 			
@@ -101,6 +107,9 @@ function doUpload() {
 
 	# We wrap all the code so we can send all the stdout and stderr to files in a single line
 	&{
+		if ($dryRun) {
+				echo "Running in 'dryRun' mode: No changes will be made."
+		}
 		
 		$timeNow = getTime
 		echo ("Uploading Backups to Gcloud... Job started at " + $timeNow)
