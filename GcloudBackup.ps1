@@ -17,7 +17,7 @@ $errorLog          = "$logDir\$dateLogs\errorLog.txt"
 $cleanLog          = "$logDir\$dateLogs\cleanLogFile.txt"
 $removeLogFile     = "$logDir\$dateLogs\removeLogFile.txt"
 $removeErrorLog    = "$logDir\$dateLogs\removeOldErrorLog.txt"
-$backupPaths       = @("\\172.26.0.97\VeeamBackup\Backup-AX_QV_DC-F","\\172.26.0.97\VeeamBackup\Backup-Resto-F") #TO DO: Add VeeamBackupConfig & Replicas
+$backupPaths       = @("\\172.26.0.97\VeeamBackup\Backup-AX_QV_DC-F","\\172.26.0.97\VeeamBackup\Backup-Resto-F") 
 $serverPath        = "gs://srvbackuphidreborn/backups"
 $daysToKeepBK      = 8 # 8 days because in case it's Sunday we'll keep the last full backup made on last Saturday
 
