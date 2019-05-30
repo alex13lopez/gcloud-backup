@@ -1,6 +1,6 @@
 # Name: Gcloud Backup
 # Author: Alex López <arendevel@gmail.com> || <alopez@hidalgosgroup.com>
-# Version: 6.3.2b
+# Version: 6.3.3b
 
 ########## Var & parms declaration #####################################################
 param(
@@ -17,7 +17,7 @@ $errorLog          = "$logDir\$dateLogs\errorLog.txt"
 $cleanLog          = "$logDir\$dateLogs\cleanLogFile.txt"
 $removeLogFile     = "$logDir\$dateLogs\removeLogFile.txt"
 $removeErrorLog    = "$logDir\$dateLogs\removeOldErrorLog.txt"
-$backupPaths       = @("\\172.26.0.97\VeeamBackup\Backup-AX_QV_DC-F","\\172.26.0.97\VeeamBackup\Backup-Resto-F") 
+$backupPaths       = @("Z:\Backups\SRVAXAPTA", "Z:\Backups\SERVERTS", "Z:\Backups\SRVDATOS", "Z:\Backups\SRVDC", "Z:\Backups\QLIKSERVER", "Z:\Backups\SRVAPPS", "Z:\Backups\vCenter", "Z:\Backups\SRVVEEAM")
 $serverPath        = "gs://srvbackuphidreborn/backups"
 $daysToKeepBK      = 8 # 8 days because in case it's Sunday we'll keep the last full backup made on last Saturday
 
@@ -76,7 +76,7 @@ function removeOldBackups() {
 			foreach ($file in $files) {
 			
 				$fileName = ($file -Split "/")[-1]
-				$fileDate = ((($file -Split "F")[-1] -Split "T")[0]) -Replace '-'
+				$fileDate = ((($file -Split "D")[-1] -Split "T")[0]) -Replace '-'
 				$fileExt  = ($fileName -Split "\.")[-1]
 				
 					if ($fileExt -ne "vbm") { # We skip '.vbm' files since they are always the same and don't have date on it					
