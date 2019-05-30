@@ -1,6 +1,6 @@
 # Name: Gcloud Backup
 # Author: Alex López <arendevel@gmail.com> || <alopez@hidalgosgroup.com>
-# Version: 6.4b
+# Version: 7.0a
 
 ########## Var & parms declaration #####################################################
 param(
@@ -35,7 +35,7 @@ function mailLogs($subject, $message) {
 	
 	# Credentials Setup
 	$User = "hidalgosgroupSL@gmail.com"
-	$File = ".\MailPassword.txt"
+	$File = ".\Veeam-MailPassword.txt"
 	$cred = New-Object -TypeName System.Management.Automation.PSCredential -ArgumentList $User, (Get-Content $File | ConvertTo-SecureString)
 	
 	# Mail Setup
