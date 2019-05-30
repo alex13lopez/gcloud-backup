@@ -1,6 +1,6 @@
 # Name: Gcloud Backup
 # Author: Alex López <arendevel@gmail.com> || <alopez@hidalgosgroup.com>
-# Version: 6.3.3b
+# Version: 6.3.4b
 
 ########## Var & parms declaration #####################################################
 param(
@@ -135,12 +135,12 @@ function doUpload() {
 			}
 			
 			$timeNow = getTime
-			echo ("Uploading $dirName to Gcloud... Job Finished at " + $timeNow)
+			echo ("Uploading $dirName to Gcloud... Job finished at " + $timeNow)
 			
 		}
 
 		$timeNow = getTime
-		echo ("Uploading Backups to Gcloud... Job Finished at " + $timeNow)
+		echo ("Uploading Backups to Gcloud... Job finished at " + $timeNow)
 
 	}  2>> $errorLog 1>> $logFile
 	
