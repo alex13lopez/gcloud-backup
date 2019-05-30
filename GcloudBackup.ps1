@@ -1,6 +1,6 @@
 # Name: Gcloud Backup
 # Author: Alex López <arendevel@gmail.com> || <alopez@hidalgosgroup.com>
-# Version: 6.3.4b
+# Version: 6.4b
 
 ########## Var & parms declaration #####################################################
 param(
@@ -25,6 +25,40 @@ $daysToKeepBK      = 8 # 8 days because in case it's Sunday we'll keep the last 
 
 function getTime() {
 	return Get-Date -UFormat "%d-%m-%Y @ %H:%M"
+}
+
+function genEncryptedPassword() {
+	(Get-Credential).Password | ConvertFrom-SecureString | Out-File ".\MailPassword.txt"
+}
+
+function mailLogs($subject, $message) {
+	
+	# Credentials Setup
+	$User = "hidalgosgroupSL@gmail.com"
+	$File = ".\MailPassword.txt"
+	$cred = New-Object -TypeName System.Management.Automation.PSCredential -ArgumentList $User, (Get-Content $File | ConvertTo-SecureString)
+	
+	# Mail Setup
+	$EmailTo = "informatica@hidalgosgroup.com"
+	$EmailFrom = "hidalgosgroupSL@gmail.com"
+	$Subject = "Test Mailing - Gcloud Backups" 
+	$Body = "<h2>This is a test, ignore this message, bitches.</h2><br><br>Saludos, TOPOTAMADRE." 
+
+	# SMTP Server Setup 
+	$SMTPServer = "smtp.gmail.com" 
+
+	# SMTP Message
+	$SMTPMessage = New-Object System.Net.Mail.MailMessage($EmailFrom,$EmailTo,$Subject,$Body)
+	$SMTPMessage.isBodyHTML = $true
+
+	# SMTP Client Setup
+	$SMTPClient = New-Object Net.Mail.SmtpClient($SmtpServer, 587) 
+	$SMTPClient.EnableSsl = $true
+	$SMTPClient.Credentials = New-Object System.Net.NetworkCredential($cred.UserName, $cred.Password); 
+	$SMTPClient.Send($SMTPMessage)
+	
+	# Continue here boyyyyy....
+	
 }
 
 function createLogFolder() {
