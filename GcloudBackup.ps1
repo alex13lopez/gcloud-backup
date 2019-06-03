@@ -1,6 +1,6 @@
 # Name: Gcloud Backup
 # Author: Alex López <arendevel@gmail.com> || <alopez@hidalgosgroup.com>
-# Version: 7.1a
+# Version: 7.2.1b
 
 ########## Var & parms declaration #####################################################
 param(
@@ -34,7 +34,7 @@ function getTime() {
 }
 
 function genEncryptedPassword() {
-	(Get-Credential).Password | ConvertFrom-SecureString | Out-File ".\Veeam-MailPassword.txt"
+	(Get-Credential).Password | ConvertFrom-SecureString | Out-File "$pwFile"
 }
 
 function getCredentials() {
@@ -45,9 +45,11 @@ function chkCredentials() {
 	return Test-Path -Path $pwFile
 }
 
-function mailLogs($server, $time) {
-	
-	if (!chkCredentials){
+function mailLogs($server, $startedTime, $endTime) {
+    
+    $chkCredentials = chkCredentials	
+
+	if (!$chkCredentials){
 		Write-Host "Password file not detected, please introduce your credentials." -fore yellow -back black
 		Write-Host "Notice that whilst you do NOT delete '$pwFile' your credentials will be safely secured with Windows Data Protection API (DPAPI) which can only be used in this machine." -fore blue -back black
 		
@@ -59,7 +61,7 @@ function mailLogs($server, $time) {
 	$EmailTo = "informatica@hidalgosgroup.com"
 	$EmailFrom = "hidalgosgroupSL@gmail.com"
 	$Subject = "[Completed] Gcloud Backups - $server" 
-	$Body = "<h2> Google Cloud '$server' upload job completed successfully at $time </h2><br><br>Greetings, <br><br> <bold>Your beloved, automated, mailing script.</bold>" 
+	$Body = "Salutations master, <br><br>Google Cloud '$server' upload job started at $startedTime --> Finished at $endTime<br><br>Greetings, <br><br> <strong>Your beloved, automated, Gcloud Backup script.</strong>" 
 
 	# SMTP Server Setup 
 	$SMTPServer = "smtp.gmail.com" 
@@ -169,6 +171,8 @@ function doUpload() {
 			$timeNow = getTime
 			echo ("Uploading $dirName to Gcloud... Job started at " + $timeNow)
 			
+			$startedTime = $timeNow
+			
 			# In case the first upload takes more than 24h we make sure that there is a folder for today's logs
 			try {
 				createLogFolder
@@ -186,8 +190,8 @@ function doUpload() {
 			$timeNow = getTime
 			echo ("Uploading $dirName to Gcloud... Job finished at " + $timeNow)
 			
-			if (isMailingOn) {
-				mailLogs $dirName $timeNow
+			if ($isMailingOn) {
+				mailLogs $dirName $startedTime $timeNow
 			}
 			
 		}
