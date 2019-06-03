@@ -1,6 +1,6 @@
 # Name: Gcloud Backup
 # Author: Alex López <arendevel@gmail.com> || <alopez@hidalgosgroup.com>
-# Version: 6.4b
+# Version: 7.2.1b
 
 ########## Var & parms declaration #####################################################
 param(
@@ -9,7 +9,8 @@ param(
 	[Parameter(Mandatory = $false)][switch]$removeOld = $false,
 	[Parameter(Mandatory = $false)][switch]$dryRun    = $false
 	)
-	
+
+# General options	
 $dateLogs          = Get-Date -UFormat "%Y%m%d"
 $logDir            = "C:\Gcloud\GcloudLogs"
 $logFile           = "$logDir\$dateLogs\logFile.txt"
@@ -21,6 +22,11 @@ $backupPaths       = @("Z:\Backups\SRVAXAPTA", "Z:\Backups\SERVERTS", "Z:\Backup
 $serverPath        = "gs://srvbackuphidreborn/backups"
 $daysToKeepBK      = 8 # 8 days because in case it's Sunday we'll keep the last full backup made on last Saturday
 
+# Mailing Options
+$isMailingOn = $true
+$User = "hidalgosgroupSL@gmail.com"
+$pwFile = ".\Veeam-MailPassword.txt"
+
 #########################################################################################
 
 function getTime() {
@@ -28,21 +34,34 @@ function getTime() {
 }
 
 function genEncryptedPassword() {
-	(Get-Credential).Password | ConvertFrom-SecureString | Out-File ".\MailPassword.txt"
+	(Get-Credential).Password | ConvertFrom-SecureString | Out-File "$pwFile"
 }
 
-function mailLogs($subject, $message) {
-	
-	# Credentials Setup
-	$User = "hidalgosgroupSL@gmail.com"
-	$File = ".\MailPassword.txt"
-	$cred = New-Object -TypeName System.Management.Automation.PSCredential -ArgumentList $User, (Get-Content $File | ConvertTo-SecureString)
+function getCredentials() {
+	return  New-Object -TypeName System.Management.Automation.PSCredential -ArgumentList $User, (Get-Content $pwFile | ConvertTo-SecureString)
+}
+
+function chkCredentials() {
+	return Test-Path -Path $pwFile
+}
+
+function mailLogs($server, $startedTime, $endTime) {
+    
+    $chkCredentials = chkCredentials	
+
+	if (!$chkCredentials){
+		Write-Host "Password file not detected, please introduce your credentials." -fore yellow -back black
+		Write-Host "Notice that whilst you do NOT delete '$pwFile' your credentials will be safely secured with Windows Data Protection API (DPAPI) which can only be used in this machine." -fore blue -back black
+		
+		genEncryptedPassword
+	}
 	
 	# Mail Setup
+	$cred = getCredentials
 	$EmailTo = "informatica@hidalgosgroup.com"
 	$EmailFrom = "hidalgosgroupSL@gmail.com"
-	$Subject = "Test Mailing - Gcloud Backups" 
-	$Body = "<h2>This is a test, ignore this message, bitches.</h2><br><br>Saludos, TOPOTAMADRE." 
+	$Subject = "[Completed] Gcloud Backups - $server" 
+	$Body = "Salutations master, <br><br>Google Cloud '$server' upload job started at $startedTime --> Finished at $endTime<br><br>Greetings, <br><br> <strong>Your beloved, automated, Gcloud Backup script.</strong>" 
 
 	# SMTP Server Setup 
 	$SMTPServer = "smtp.gmail.com" 
@@ -56,8 +75,6 @@ function mailLogs($subject, $message) {
 	$SMTPClient.EnableSsl = $true
 	$SMTPClient.Credentials = New-Object System.Net.NetworkCredential($cred.UserName, $cred.Password); 
 	$SMTPClient.Send($SMTPMessage)
-	
-	# Continue here boyyyyy....
 	
 }
 
@@ -154,6 +171,8 @@ function doUpload() {
 			$timeNow = getTime
 			echo ("Uploading $dirName to Gcloud... Job started at " + $timeNow)
 			
+			$startedTime = $timeNow
+			
 			# In case the first upload takes more than 24h we make sure that there is a folder for today's logs
 			try {
 				createLogFolder
@@ -170,6 +189,10 @@ function doUpload() {
 			
 			$timeNow = getTime
 			echo ("Uploading $dirName to Gcloud... Job finished at " + $timeNow)
+			
+			if ($isMailingOn) {
+				mailLogs $dirName $startedTime $timeNow
+			}
 			
 		}
 
