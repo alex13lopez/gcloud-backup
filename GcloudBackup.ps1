@@ -25,7 +25,7 @@ $daysToKeepBK      = 8 # 8 days because in case it's Sunday we'll keep the last 
 # Mailing Options
 $isMailingOn = $true
 $User = "hidalgosgroupSL@gmail.com"
-$pwFile = ".\Veeam-MailPassword.txt"
+$pwFile = ".\Veeam-MailPassword"
 
 #########################################################################################
 
