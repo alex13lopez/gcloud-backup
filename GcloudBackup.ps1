@@ -1,6 +1,6 @@
 # Name: Gcloud Backup
 # Author: Alex López <arendevel@gmail.com> || <alopez@hidalgosgroup.com>
-# Version: 7.2.2b
+# Version: 7.2.3b
 
 ########## Var & parms declaration #####################################################
 param(
@@ -18,6 +18,7 @@ $errorLog          = "$logDir\$dateLogs\errorLog.txt"
 $cleanLog          = "$logDir\$dateLogs\cleanLogFile.txt"
 $removeLogFile     = "$logDir\$dateLogs\removeLogFile.txt"
 $removeErrorLog    = "$logDir\$dateLogs\removeOldErrorLog.txt"
+$credErrorLog	   = "$logDir\$dateLogs\credErrorLog.txt"
 $backupPaths       = @("Z:\Backups\SRVAXAPTA", "Z:\Backups\SERVERTS", "Z:\Backups\SRVDATOS", "Z:\Backups\SRVDC", "Z:\Backups\QLIKSERVER", "Z:\Backups\SRVAPPS", "Z:\Backups\vCenter", "Z:\Backups\SRVVEEAM")
 $serverPath        = "gs://srvbackuphidreborn/backups"
 $daysToKeepBK      = 8 # 8 days because in case it's Sunday we'll keep the last full backup made on last Saturday
@@ -52,6 +53,10 @@ function mailLogs($server, $startedTime, $endTime) {
 	if (!$chkCredentials){
 		Write-Host "Password file not detected, please introduce your credentials." -fore yellow -back black
 		Write-Host "Notice that whilst you do NOT delete '$pwFile' your credentials will be safely secured with Windows Data Protection API (DPAPI) which can only be used in this machine." -fore blue -back black
+		
+		# We write the messages to the log file in case this script is running unatended
+		Write-Host "Password file not detected, please introduce your credentials." 1> $credErrorLog
+		Write-Host "Notice that whilst you do NOT delete '$pwFile' your credentials will be safely secured with Windows Data Protection API (DPAPI) which can only be used in this machine." 1> $credErrorLog
 		
 		genEncryptedPassword
 	}
