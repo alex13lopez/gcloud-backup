@@ -28,8 +28,8 @@ $daysToKeepBK      = 8 # 8 days because in case it's Sunday we'll keep the last 
 
 # Mailing Options
 $credDir     = "$installDir\Credentials\"
-$usrFile     = "$credDir\Username.txt"
-$pwFile      = "$credDir\Password.txt"
+$usrFile     = "$credDir\Username"
+$pwFile      = "$credDir\Password"
 $isMailingOn = $true
 
 #########################################################################################
