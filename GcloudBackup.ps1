@@ -1,18 +1,21 @@
 # Name: Gcloud Backup
 # Author: Alex López <arendevel@gmail.com> || <alopez@hidalgosgroup.com>
-# Version: 7.2.3b
+# Version: 8.1b
 
 ########## Var & parms declaration #####################################################
 param(
-    [Parameter(Mandatory = $false)][switch]$all       = $false,
-	[Parameter(Mandatory = $false)][switch]$clean     = $false, 
-	[Parameter(Mandatory = $false)][switch]$removeOld = $false,
-	[Parameter(Mandatory = $false)][switch]$dryRun    = $false
+    [Parameter(Mandatory = $false)][switch]$all         = $false,
+	[Parameter(Mandatory = $false)][switch]$clean		= $false, 
+	[Parameter(Mandatory = $false)][switch]$removeOld	= $false,
+	[Parameter(Mandatory = $false)][switch]$dryRun		= $false, # This will cause script to run without making any changes
+	[Parameter(Mandatory = $false)][switch]$unattended	= $false, # Turn this flag on if script is going tu run unattended
+	[Parameter(Mandatory = $false)][switch]$genCreds 	= $false  # Generate credentials only
 	)
 
 # General options	
 $dateLogs          = Get-Date -UFormat "%Y%m%d"
-$logDir            = "C:\Gcloud\GcloudLogs"
+$installDir		   = "C:\Gcloud"
+$logDir            = "$installDir\GcloudLogs"
 $logFile           = "$logDir\$dateLogs\logFile.txt"
 $errorLog          = "$logDir\$dateLogs\errorLog.txt"
 $cleanLog          = "$logDir\$dateLogs\cleanLogFile.txt"
@@ -24,9 +27,12 @@ $serverPath        = "gs://srvbackuphidreborn/backups"
 $daysToKeepBK      = 8 # 8 days because in case it's Sunday we'll keep the last full backup made on last Saturday
 
 # Mailing Options
-$isMailingOn = $true
-$User = "hidalgosgroupSL@gmail.com"
-$pwFile = ".\Veeam-MailPassword"
+$credDir     = "$installDir\Credentials\"
+$usrFile     = "$credDir\Username.txt"
+$pwFile      = "$credDir\Password.txt"
+$isMailingOn = $false
+
+
 
 #########################################################################################
 
@@ -34,16 +40,33 @@ function getTime() {
 	return Get-Date -UFormat "%d-%m-%Y @ %H:%M"
 }
 
-function genEncryptedPassword() {
-	(Get-Credential).Password | ConvertFrom-SecureString | Out-File "$pwFile"
-}
-
-function getCredentials() {
-	return  New-Object -TypeName System.Management.Automation.PSCredential -ArgumentList $User, (Get-Content $pwFile | ConvertTo-SecureString)
+function createFolder($path) {
+	
+	try {
+		mkdir "$path" -ErrorAction Continue 2>&1> $null
+	}
+	catch {
+		continue
+	}
+	
 }
 
 function chkCredentials() {
-	return Test-Path -Path $pwFile
+	return (Test-Path -Path $usrFile) -and (Test-Path -Path $pwFile)
+}
+
+function genCredentials() {
+	
+	createFolder $credDir
+	
+	$creds = (Get-Credential)
+	
+	$creds.UserName | Out-File $usrFile
+	$creds.Password | ConvertFrom-SecureString | Out-File $pwFile
+}
+
+function getCredentials() {
+	return  New-Object -TypeName System.Management.Automation.PSCredential -ArgumentList (Get-Content $usrFile), (Get-Content $pwFile | ConvertTo-SecureString)
 }
 
 function mailLogs($server, $startedTime, $endTime) {
@@ -51,20 +74,25 @@ function mailLogs($server, $startedTime, $endTime) {
     $chkCredentials = chkCredentials	
 
 	if (!$chkCredentials){
-		Write-Host "Password file not detected, please introduce your credentials." -fore yellow -back black
-		Write-Host "Notice that whilst you do NOT delete '$pwFile' your credentials will be safely secured with Windows Data Protection API (DPAPI) which can only be used in this machine." -fore blue -back black
 		
-		# We write the messages to the log file in case this script is running unatended
-		Write-Host "Password file not detected, please introduce your credentials." 1> $credErrorLog
-		Write-Host "Notice that whilst you do NOT delete '$pwFile' your credentials will be safely secured with Windows Data Protection API (DPAPI) which can only be used in this machine." 1> $credErrorLog
+		if ($unattended) {
+			echo "Credentials not found, please run this script again in interactive mode (No unattended flag activated) to generate them." 1> $credErrorLog
+			echo "Notice that whilst you do NOT delete '$credDir' your credentials will be safely secured with Windows Data Protection API (DPAPI) which can only be used in this machine." 1>> $credErrorLog
+			return $false # Creds not found and running in 'unattended mode' so we cannot send the email
+		}
+		else {
+			Write-Host "Credentials not found, please introduce your login information." -fore yellow -back black
+			Write-Host "Notice that whilst you do NOT delete '$credDir' your credentials will be safely secured with Windows Data Protection API (DPAPI) which can only be used in this machine." -fore blue -back black
+			genCredentials
+		}				
 		
-		genEncryptedPassword
+		
 	}
 	
 	# Mail Setup
 	$cred = getCredentials
 	$EmailTo = "informatica@hidalgosgroup.com"
-	$EmailFrom = "hidalgosgroupSL@gmail.com"
+	$EmailFrom = $cred.UserName
 	$Subject = "[Completed] Gcloud Backups - $server" 
 	$Body = "Salutations master, <br><br>Google Cloud '$server' upload job started at $startedTime --> Finished at $endTime<br><br>Greetings, <br><br> <strong>Your beloved, automated, Gcloud Backup script.</strong>" 
 
@@ -81,10 +109,8 @@ function mailLogs($server, $startedTime, $endTime) {
 	$SMTPClient.Credentials = New-Object System.Net.NetworkCredential($cred.UserName, $cred.Password); 
 	$SMTPClient.Send($SMTPMessage)
 	
-}
-
-function createLogFolder() {
-	mkdir "$logDir\$dateLogs" -ErrorAction Continue 2>&1> $null
+	return $true
+	
 }
 
 function autoClean() {
@@ -171,20 +197,15 @@ function doUpload() {
 		echo ("Uploading Backups to Gcloud... Job started at " + $timeNow)
 
 		foreach ($path in $backupPaths) {
+			
 			$dirName = $path -replace '.*\\'
 			
 			$timeNow = getTime
 			echo ("Uploading $dirName to Gcloud... Job started at " + $timeNow)
 			
 			$startedTime = $timeNow
-			
-			# In case the first upload takes more than 24h we make sure that there is a folder for today's logs
-			try {
-				createLogFolder
-			}
-			catch {
-				continue
-			}
+						
+			createFolder "$logDir\$dateLogs"
 			
 			if (!$dryRun) {
 				# Changed back to rsync because copy does copy all the files whether they are changed or not
@@ -196,7 +217,7 @@ function doUpload() {
 			echo ("Uploading $dirName to Gcloud... Job finished at " + $timeNow)
 			
 			if ($isMailingOn) {
-				mailLogs $dirName $startedTime $timeNow
+				$isMailingOn = mailLogs $dirName $startedTime $timeNow # In case that sending email fails, we switch off the mailing option until script is restarted
 			}
 			
 		}
@@ -210,21 +231,24 @@ function doUpload() {
 
 try {
 	if ($clean) {
-		createLogFolder
+		createFolder "$logDir\$dateLogs"
 		autoClean
 	} 
 	elseif ($removeOld) {
-		createLogFolder
+		createFolder "$logDir\$dateLogs"
 		removeOldBackups
 	}
 	elseif ($All) {
-		createLogFolder
+		createFolder "$logDir\$dateLogs"
 		autoClean
 		doUpload
 		removeOldBackups
 	}
+	elseif ($genCreds) {
+		genCredentials
+	}
 	else {
-		createLogFolder
+		createFolder "$logDir\$dateLogs"
 		doUpload
 	}
 }
