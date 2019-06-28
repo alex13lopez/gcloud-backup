@@ -1,6 +1,6 @@
 # Name: Gcloud Backup
 # Author: Alex López <arendevel@gmail.com> || <alopez@hidalgosgroup.com>
-# Version: 8.1b
+# Version: 8.1.1b
 
 ########## Var & parms declaration #####################################################
 param(
@@ -30,9 +30,7 @@ $daysToKeepBK      = 8 # 8 days because in case it's Sunday we'll keep the last 
 $credDir     = "$installDir\Credentials\"
 $usrFile     = "$credDir\Username.txt"
 $pwFile      = "$credDir\Password.txt"
-$isMailingOn = $false
-
-
+$isMailingOn = $true
 
 #########################################################################################
 
@@ -63,6 +61,8 @@ function genCredentials() {
 	
 	$creds.UserName | Out-File $usrFile
 	$creds.Password | ConvertFrom-SecureString | Out-File $pwFile
+	
+	Write-Host "Credentials generated succesfully!" -fore green -back black
 }
 
 function getCredentials() {
