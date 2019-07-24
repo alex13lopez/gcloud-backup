@@ -1,6 +1,6 @@
 # Name: Gcloud Backup
 # Author: Alex López <arendevel@gmail.com> || <alopez@hidalgosgroup.com>
-# Version: 8.1.1b
+# Version: 8.2a
 
 ########## Var & parms declaration #####################################################
 param(
@@ -69,7 +69,7 @@ function getCredentials() {
 	return  New-Object -TypeName System.Management.Automation.PSCredential -ArgumentList (Get-Content $usrFile), (Get-Content $pwFile | ConvertTo-SecureString)
 }
 
-function mailLogs($server, $startedTime, $endTime) {
+function mailLogs($jobType, $server, $startedTime, $endTime, $attachment) {
     
     $chkCredentials = chkCredentials	
 
@@ -93,8 +93,15 @@ function mailLogs($server, $startedTime, $endTime) {
 	$cred = getCredentials
 	$EmailTo = "informatica@hidalgosgroup.com"
 	$EmailFrom = $cred.UserName
-	$Subject = "[Completed] Gcloud Backups - $server" 
-	$Body = "Salutations master, <br><br>Google Cloud '$server' upload job started at $startedTime --> Finished at $endTime<br><br>Greetings, <br><br> <strong>Your beloved, automated, Gcloud Backup script.</strong>" 
+	
+	if ($jobType == "upload") {
+		$Subject = "[Completed] Gcloud Backups - $server" 
+		$Body = "Salutations master, <br><br>Google Cloud '$server' upload job which started at $startedTime --> Finished at $endTime<br><br>Greetings, <br><br> <strong>Your beloved, automated, Gcloud Backup script.</strong>" 
+	}
+	else if ($jobType == "remove") {
+		$Subject = "[Completed] Gcloud Backups - Removing old cloud backups"
+		$Body = "Salutations master, <br><br>Google Cloud 'Removing old backup files' job which started at $startedTime --> Finished at $endTime<br><br>Greetings, <br><br> <strong>Your beloved, automated, Gcloud Backup script.</strong>" 
+	}
 
 	# SMTP Server Setup 
 	$SMTPServer = "smtp.gmail.com" 
@@ -102,6 +109,11 @@ function mailLogs($server, $startedTime, $endTime) {
 	# SMTP Message
 	$SMTPMessage = New-Object System.Net.Mail.MailMessage($EmailFrom,$EmailTo,$Subject,$Body)
 	$SMTPMessage.isBodyHTML = $true
+	
+	if (! [string]::IsNullOrEmpty($attachment)) {
+		$attachThis = new-object Net.Mail.Attachment($attachment) 
+		$SMTPMessage.Attachments.Add($attachThis)
+	}
 
 	# SMTP Client Setup
 	$SMTPClient = New-Object Net.Mail.SmtpClient($SmtpServer, 587) 
@@ -148,7 +160,9 @@ function removeOldBackups() {
 	if (! [string]::IsNullOrEmpty($files)) { 
 	
 		$timeNow = getTime
-	    echo ("Removing old backup files' job started at " + $timeNow) 1>> $logFile
+	    $startedTime = $timeNow
+		echo ("Removing old backup files' job started at " + $timeNow) 1>> $logFile
+		
 		
 		&{
 			if ($dryRun) {
@@ -179,8 +193,12 @@ function removeOldBackups() {
 		
 		$timeNow = getTime
 	    echo ("Removing old backup files' job finished at " + $timeNow) 1>> $logFile 
+		
+		if ($isMailingOn) {
+			$isMailingOn = mailLogs "remove" "" $startedTime $timeNow $removeErrorLog
+		}
 	}
-	else {echo "Could not get the files"}
+	else {echo "Could not get the files" 1>> $errorLog}
 	
 }
 
@@ -217,7 +235,7 @@ function doUpload() {
 			echo ("Uploading $dirName to Gcloud... Job finished at " + $timeNow)
 			
 			if ($isMailingOn) {
-				$isMailingOn = mailLogs $dirName $startedTime $timeNow # In case that sending email fails, we switch off the mailing option until script is restarted
+				$isMailingOn = mailLogs "upload" $dirName $startedTime $timeNow # In case that sending email fails, we switch off the mailing option until script is restarted
 			}
 			
 		}
