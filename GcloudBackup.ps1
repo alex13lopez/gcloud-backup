@@ -273,10 +273,5 @@ try {
 catch [System.IO.DirectoryNotFoundException] {
 	Write-Host 'Please, check that file paths are well configured' -fore red -back black
 }
-#catch {
-	# We catch all exceptions and show the fullname of the exception so we can handle it better
-#	Write-Host 'Unknown error. Caught exception:' $_.Exception.GetType().FullName -fore red -back black
-#}
-
 
 
