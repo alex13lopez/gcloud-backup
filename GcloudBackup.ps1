@@ -1,6 +1,6 @@
 # Name: Gcloud Backup
 # Author: Alex López <arendevel@gmail.com> || <alopez@hidalgosgroup.com>
-# Version: 8.2a
+# Version: 8.2.3b
 
 ########## Var & parms declaration #####################################################
 param(
@@ -94,11 +94,11 @@ function mailLogs($jobType, $server, $startedTime, $endTime, $attachment) {
 	$EmailTo = "informatica@hidalgosgroup.com"
 	$EmailFrom = $cred.UserName
 	
-	if ($jobType == "upload") {
+	if ($jobType -eq "upload") {
 		$Subject = "[Completed] Gcloud Backups - $server" 
 		$Body = "Salutations master, <br><br>Google Cloud '$server' upload job which started at $startedTime --> Finished at $endTime<br><br>Greetings, <br><br> <strong>Your beloved, automated, Gcloud Backup script.</strong>" 
 	}
-	else if ($jobType == "remove") {
+	elseif ($jobType -eq "remove") {
 		$Subject = "[Completed] Gcloud Backups - Removing old cloud backups"
 		$Body = "Salutations master, <br><br>Google Cloud 'Removing old backup files' job which started at $startedTime --> Finished at $endTime<br><br>Greetings, <br><br> <strong>Your beloved, automated, Gcloud Backup script.</strong>" 
 	}
@@ -195,7 +195,7 @@ function removeOldBackups() {
 	    echo ("Removing old backup files' job finished at " + $timeNow) 1>> $logFile 
 		
 		if ($isMailingOn) {
-			$isMailingOn = mailLogs "remove" "" $startedTime $timeNow $removeErrorLog
+			$isMailingOn = mailLogs "remove" "" $startedTime $timeNow $removeLogFile
 		}
 	}
 	else {echo "Could not get the files" 1>> $errorLog}
@@ -273,10 +273,10 @@ try {
 catch [System.IO.DirectoryNotFoundException] {
 	Write-Host 'Please, check that file paths are well configured' -fore red -back black
 }
-catch {
+#catch {
 	# We catch all exceptions and show the fullname of the exception so we can handle it better
-	Write-Host 'Unknown error. Caught exception:' $_.Exception.GetType().FullName -fore red -back black
-}
+#	Write-Host 'Unknown error. Caught exception:' $_.Exception.GetType().FullName -fore red -back black
+#}
 
 
 
