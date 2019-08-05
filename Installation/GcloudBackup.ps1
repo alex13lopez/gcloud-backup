@@ -1,6 +1,6 @@
 # Name: Gcloud Backup
 # Author: Alex López <arendevel@gmail.com> || <alopez@hidalgosgroup.com>
-# Version: 8.2.3b
+# Version: 9.0a
 
 ########## Var & parms declaration #####################################################
 param(
@@ -12,25 +12,17 @@ param(
 	[Parameter(Mandatory = $false)][switch]$genCreds 	= $false  # Generate credentials only
 	)
 
-# General options	
-$dateLogs          = Get-Date -UFormat "%Y%m%d"
-$installDir		   = "C:\Gcloud"
-$logDir            = "$installDir\GcloudLogs"
-$logFile           = "$logDir\$dateLogs\logFile.txt"
-$errorLog          = "$logDir\$dateLogs\errorLog.txt"
-$cleanLog          = "$logDir\$dateLogs\cleanLogFile.txt"
-$removeLogFile     = "$logDir\$dateLogs\removeLogFile.txt"
-$removeErrorLog    = "$logDir\$dateLogs\removeOldErrorLog.txt"
-$credErrorLog	   = "$logDir\$dateLogs\credErrorLog.txt"
-$backupPaths       = @("Z:\Backups\SRVAXAPTA", "Z:\Backups\SERVERTS", "Z:\Backups\SRVDATOS", "Z:\Backups\SRVDC", "Z:\Backups\QLIKSERVER", "Z:\Backups\SRVAPPS", "Z:\Backups\vCenter", "Z:\Backups\SRVVEEAM")
-$serverPath        = "gs://srvbackuphidreborn/backups"
-$daysToKeepBK      = 8 # 8 days because in case it's Sunday we'll keep the last full backup made on last Saturday
+$confFile = ".\GcloudConf.ps1"
 
-# Mailing Options
-$credDir     = "$installDir\Credentials\"
-$usrFile     = "$credDir\Username"
-$pwFile      = "$credDir\Password"
-$isMailingOn = $true
+# Conf loading
+
+if (Test-Path $confFile) {
+	. $confFile
+}
+else {
+	Write-Host 'Configuration file not found, please reinstall!' -fore red -back black
+	exit 1
+}
 
 #########################################################################################
 
@@ -91,7 +83,7 @@ function mailLogs($jobType, $server, $startedTime, $endTime, $attachment) {
 	
 	# Mail Setup
 	$cred = getCredentials
-	$EmailTo = "informatica@hidalgosgroup.com"
+	$EmailTo = $mailTo
 	$EmailFrom = $cred.UserName
 	
 	if ($jobType -eq "upload") {
