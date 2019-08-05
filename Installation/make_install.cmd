@@ -14,7 +14,7 @@ copy /A /V /Y ".\GcloudBackup.ps1" "C:\Gcloud\" 1>nul
 copy /A /V /Y ".\GcloudConf.ps1" "C:\Gcloud\" 1>nul
 
 if exist ".\Scheduled Tasks\" (
-	xcopy /S /Y ".\Scheduled Tasks" "C:\Gcloud\" 1>nul
+	xcopy /S /Y ".\Scheduled Tasks" "C:\Gcloud\Scheduled Tasks\" 1>nul
 	
 	set /p ch="Do you wish to automatically import the scheduled tasks? (y/n): "
 	
