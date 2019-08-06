@@ -1,6 +1,6 @@
 # Name: Gcloud Backup
 # Author: Alex López <arendevel@gmail.com> || <alopez@hidalgosgroup.com>
-# Version: 9.0.1a
+# Version: 9.1b
 
 ########## Var & parms declaration #####################################################
 param(
@@ -19,7 +19,7 @@ $confFile = ".\GcloudConf.ps1"
 # Conf loading
 
 if (Test-Path $confFile) {
-	Import-Module $confFile
+	. $confFile
 }
 else {
 	Write-Host 'Configuration file not found, please reinstall!' -fore red -back black

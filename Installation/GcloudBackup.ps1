@@ -1,6 +1,6 @@
 # Name: Gcloud Backup
 # Author: Alex López <arendevel@gmail.com> || <alopez@hidalgosgroup.com>
-# Version: 9.0a
+# Version: 9.1b
 
 ########## Var & parms declaration #####################################################
 param(
@@ -11,6 +11,8 @@ param(
 	[Parameter(Mandatory = $false)][switch]$unattended	= $false, # Turn this flag on if script is going tu run unattended
 	[Parameter(Mandatory = $false)][switch]$genCreds 	= $false  # Generate credentials only
 	)
+	
+Push-Location (Split-Path -Path $MyInvocation.MyCommand.Definition -Parent)
 
 $confFile = ".\GcloudConf.ps1"
 
