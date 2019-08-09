@@ -1,6 +1,6 @@
 # Name: Gcloud Backup
 # Author: Alex López <arendevel@gmail.com> || <alopez@hidalgosgroup.com>
-# Version: 9.1b
+# Version: 9.1.1b
 
 ########## Var & parms declaration #####################################################
 param(
@@ -17,15 +17,19 @@ Push-Location (Split-Path -Path $MyInvocation.MyCommand.Definition -Parent)
 $confFile = ".\GcloudConf.ps1"
 
 # Conf loading
-
-if (Test-Path $confFile) {
-	. $confFile
+try {
+	if (Test-Path $confFile) {
+		. $confFile
+	}
+	else {
+		Write-Host 'Configuration file not found, please reinstall!' -fore red -back black
+		exit 1
+	}
 }
-else {
-	Write-Host 'Configuration file not found, please reinstall!' -fore red -back black
+catch {
+	Write-Host "Please, check your configuration file, there's something incorrect in it. " -fore red -back black
 	exit 1
 }
-
 #########################################################################################
 
 function getTime() {
@@ -267,5 +271,4 @@ try {
 catch [System.IO.DirectoryNotFoundException] {
 	Write-Host 'Please, check that file paths are well configured' -fore red -back black
 }
-
 

@@ -1,7 +1,7 @@
 @echo off
 
 :: Automated simple installer, use under your own responsibility
-:: Ver: 1.2.2b
+:: Ver: 1.2.2.2b
 
 :: Do not touch below line, it is used to activate delayed expansion of variables in order to use vars inside IF block
 setlocal EnableDelayedExpansion
@@ -12,7 +12,7 @@ pushd %~dp0
 mkdir "C:\Gcloud" 1>nul 2>nul
 copy /A /V /Y ".\GcloudBackup.ps1" "C:\Gcloud\" 1>nul
 
-if exist ".\GcloudConf.ps1" (
+if exist "C:\Gcloud\GcloudConf.ps1" (
 	set /p ch="Old config has been found, do you wish to keep it? (y/n): "
 	
 	if "!ch!" == "n" (
@@ -26,6 +26,10 @@ if exist ".\GcloudConf.ps1" (
 		echo             Please check the new version of the config file so you make sure you're not lacking anything
 		echo.
 	)
+)
+
+if not exist "C:\Gcloud\GcloudConf.ps1" (
+	copy /A /V /Y ".\GcloudConf.ps1" "C:\Gcloud\" 1>nul	
 )
 
 
