@@ -1,6 +1,6 @@
 # Name: Gcloud Backup
 # Author: Alex López <arendevel@gmail.com> || <alopez@hidalgosgroup.com>
-# Version: 9.1.2b
+# Version: 9.2b
 
 ########## Var & parms declaration #####################################################
 param(
@@ -94,11 +94,15 @@ function mailLogs($jobType, $server, $startedTime, $endTime, $attachment) {
 	
 	if ($jobType -eq "upload") {
 		$Subject = "[Completed] Gcloud Backups - $server" 
-		$Body = "Salutations master, <br><br>Google Cloud '$server' upload job which started at $startedTime --> Finished at $endTime<br><br>Greetings, <br><br> <strong>Your beloved, automated, Gcloud Backup script.</strong>" 
+		$Body = "Salutations master, <br><br>Google Cloud '$server' upload job which started at $startedTime --> Finished at $endTime<br><br>Greetings, <br><br> <strong>Your automated, Gcloud Backup script.</strong>" 
 	}
 	elseif ($jobType -eq "remove") {
 		$Subject = "[Completed] Gcloud Backups - Removing old cloud backups"
-		$Body = "Salutations master, <br><br>Google Cloud 'Removing old backup files' job which started at $startedTime --> Finished at $endTime<br><br>Greetings, <br><br> <strong>Your beloved, automated, Gcloud Backup script.</strong>" 
+		$Body = "Salutations master, <br><br>Google Cloud 'Removing old backup files' job which started at $startedTime --> Finished at $endTime<br><br>Greetings, <br><br> <strong>Your automated, Gcloud Backup script.</strong>" 
+	}
+	elseif ($jobType -eq "sendErrorLog") {
+		$Subject = "[Failed] Gcloud Backups - $server"
+		$Body = "Bad news master, <br><br>Something just broke. I attach the error file.<br><br>Greetings, <br><br> <strong>Your automated, Gcloud Backup script.</strong>" 
 	}
 
 	# SMTP Server Setup 
@@ -120,6 +124,22 @@ function mailLogs($jobType, $server, $startedTime, $endTime, $attachment) {
 	$SMTPClient.Send($SMTPMessage)
 	
 	return $true
+	
+}
+
+function sendErrorLog($subject, $errorLogFile) {
+	
+	if (Test-Path $errorLogFile) {
+	
+		$fileContents = Get-Content $errorLogFile
+		
+		if (! [string]::isNullOrEmpty($fileContents)) {
+			$ret = mailLogs "sendErrorLog" $subject "" "" $errorLogFile
+		}
+		
+	}
+	
+	return $ret
 	
 }
 
@@ -243,6 +263,9 @@ function doUpload() {
 
 	}  2>> $errorLog 1>> $logFile
 	
+	if ($isMailingOn) {
+		$isMailingOn = sendErrorLog "Upload job" $errorLog
+	}
 }
 
 try {
