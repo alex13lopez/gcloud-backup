@@ -1,4 +1,5 @@
 using System;
+using System.IO;
 
 namespace Utilities {
 
@@ -14,12 +15,18 @@ namespace Utilities {
 
     class Credentials
     {
+        private string credDir;
         private string usrFile;
         private string pwFile;
-        
-        public Boolean chkCredentials()
+
+        public Credentials(string cDir)
         {
-            return true;
+            credDir = cDir;
+            usrFile = Path.Combine(cDir, "Username");
+            usrFile = Path.Combine(cDir, "Password");
         }
+        public Boolean chkCredentials() => File.Exists(usrFile) && File.Exists(pwFile);
+
+
     }
 }
