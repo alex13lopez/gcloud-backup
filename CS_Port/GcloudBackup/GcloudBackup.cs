@@ -1,5 +1,5 @@
 ﻿using System;
-using Utils = Utilities.Utils;
+using Utilities;
 
 namespace GcloudBackup
 {
@@ -7,7 +7,11 @@ namespace GcloudBackup
     {
         static void Main(string[] args)
         {
-            Console.WriteLine("Hola Dani la fecha de ahora es: " + Utils.getTime());
+            Credentials creds = new Credentials(".\\Credentials\\");
+
+            
+
+            Console.WriteLine("Test fecha de ahora es: " + Utils.getTime());
             Console.ReadKey();
         }
     }
