@@ -1,0 +1,7 @@
+C:\Users\alex.lopez\Documents\Repo\gcloudbackups\CS_Port\GcloudBackup\bin\Debug\GcloudBackup.exe.config
+C:\Users\alex.lopez\Documents\Repo\gcloudbackups\CS_Port\GcloudBackup\bin\Debug\GcloudBackup.exe
+C:\Users\alex.lopez\Documents\Repo\gcloudbackups\CS_Port\GcloudBackup\bin\Debug\GcloudBackup.pdb
+C:\Users\alex.lopez\Documents\Repo\gcloudbackups\CS_Port\GcloudBackup\obj\Debug\GcloudBackup.csprojAssemblyReference.cache
+C:\Users\alex.lopez\Documents\Repo\gcloudbackups\CS_Port\GcloudBackup\obj\Debug\GcloudBackup.csproj.CoreCompileInputs.cache
+C:\Users\alex.lopez\Documents\Repo\gcloudbackups\CS_Port\GcloudBackup\obj\Debug\GcloudBackup.exe
+C:\Users\alex.lopez\Documents\Repo\gcloudbackups\CS_Port\GcloudBackup\obj\Debug\GcloudBackup.pdb

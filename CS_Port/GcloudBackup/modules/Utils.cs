@@ -2,7 +2,6 @@ using System;
 using System.IO;
 using System.Text;
 using System.Security.Cryptography;
-using System.Runtime.Serialization;
 using System.Runtime.Serialization.Formatters.Binary;
 
 namespace Utilities
@@ -18,10 +17,11 @@ namespace Utilities
 
     }
 
+    [Serializable]
     class Credentials
     {
-        private string credDir;
-        private string credFile;
+        private readonly string credDir;
+        private readonly string credFile;
         private string user;
         private string password;
         private static readonly byte[] entropy = { 9, 2, 4, 1, 3, 5, 0 };
@@ -30,11 +30,14 @@ namespace Utilities
 
         public string Password {
             // We make an accessor to store the password in case we want to set credentials in interactive mode
-            get => "Password is encrypted so it cannot be shown.";
+            get {
+                return !(String.IsNullOrEmpty(password)) ? "Password is encrypted so it cannot be shown." : "";
+            }
+
             set => password = value;
         }
 
-        public Credentials(string cDir, string fileName)
+        public Credentials(string cDir = "", string fileName = "")
         {
             credDir = cDir;
             credFile = Path.Combine(cDir, fileName);
@@ -51,10 +54,7 @@ namespace Utilities
         }
 
         private static string getPassword()
-        {
-            Console.WriteLine();
-            Console.Write("Enter password: ");
-
+        {           
             string password = string.Empty;
 
             ConsoleKeyInfo keyInfo = Console.ReadKey(true);
@@ -71,43 +71,33 @@ namespace Utilities
 
         private void saveCredentials()
         {
-            File credentialsFile = new File(this.credFile);
-            Stream fileStream = credentialsFile.Open(FileMode.Create);
-            BinaryFormatter binFormatter = new BinaryFormatter();
-
-            binFormatter.Serialize(fileStream, this);
-            fileStream.Close();
-
-        }
-
-        private string loadCredentials()
-        {
-            if (chkCredentials())
+            try
             {
-                
-                File credentialsFile = new File(this.credFile);
-                Stream fileStream = credentialsFile.Open(FileMode.Open);
+                Stream fileStream = File.OpenWrite(this.credFile);
                 BinaryFormatter binFormatter = new BinaryFormatter();
 
-                this = (Credentials)binFormatter.Deserialize(fileStream); // I have to try if this works... Idk if it will let me overwrite the current instance of Credentials()
+                binFormatter.Serialize(fileStream, this);
                 fileStream.Close();
-
-                return "Credentials were successfully loaded";
             }
-            return "Credentials were not found.";
+            catch (DirectoryNotFoundException)  {
+                Directory.CreateDirectory(this.credDir);
+                saveCredentials(); // We call ourselves again
+            }
+
+
         }
 
-        public void genCredentials()
+            public void genCredentials()
         {
             string user;
             string passwd;
 
             Console.WriteLine("Introduce your credentials: ");
 
-            Console.Write("\t\tUser: ");
+            Console.Write("\tUser: ");
             user = Console.ReadLine();
 
-            Console.WriteLine("\t\tPassword: ");
+            Console.Write("\tPassword: ");
             passwd = encrypt(getPassword()); // We save the value already encrypted, so nobody can steal it from memory
 
             this.User = user;
@@ -117,7 +107,39 @@ namespace Utilities
 
         }
 
-        public Boolean chkCredentials() => File.Exists(this.credFile);
+        private Boolean chkCredentials() => File.Exists(this.credFile);
+
+        public void loadCredentials()
+        {
+            if (chkCredentials())
+            {
+
+                try
+                {
+                    Credentials tmpCreds = new Credentials();
+
+                    Stream fileStream = File.OpenRead(this.credFile);
+                    BinaryFormatter binFormatter = new BinaryFormatter();
+
+                    tmpCreds = (Credentials)binFormatter.Deserialize(fileStream);
+                    fileStream.Close();
+
+                    this.User = tmpCreds.user;
+                    this.Password = tmpCreds.password;
+
+                    Console.WriteLine("Credentials were successfully loaded");
+                }
+                catch (System.Runtime.Serialization.SerializationException)
+                {
+                    Console.WriteLine("Credentials' file is corrupted. Please regenerate the credentials or provide another file.");
+                    Console.ReadKey();
+                    Environment.Exit(1);
+                }
+            }
+            Console.WriteLine("Credentials were not found.");
+            Console.ReadKey();
+            Environment.Exit(1);
+        }                
 
 
     }

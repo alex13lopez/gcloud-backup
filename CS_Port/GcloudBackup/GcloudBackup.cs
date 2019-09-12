@@ -5,13 +5,22 @@ namespace GcloudBackup
 {
     class GcloudBackup
     {
-        static void Main(string[] args)
+        static void Main()
         {
-            Credentials creds = new Credentials(".\\Credentials\\");
+           //Credentials creds = new Credentials(".\\Credentials\\", "testcreds");
 
-            
+            //creds.genCredentials();
 
-            Console.WriteLine("Test fecha de ahora es: " + Utils.getTime());
+            //Console.WriteLine();
+            //Console.WriteLine(creds.User + " || " + creds.Password);
+            //Console.ReadKey();
+
+            Credentials creds = new Credentials(".\\Credentials\\", "testcreds");
+
+            creds.loadCredentials(); 
+
+            Console.WriteLine();
+            Console.WriteLine(creds.User + " || " + creds.Password);
             Console.ReadKey();
         }
     }
