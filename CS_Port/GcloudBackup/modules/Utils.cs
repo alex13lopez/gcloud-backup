@@ -109,7 +109,7 @@ namespace Utilities
 
         private Boolean chkCredentials() => File.Exists(this.credFile);
 
-        public void loadCredentials()
+        public Boolean loadCredentials()
         {
             if (chkCredentials())
             {
@@ -128,6 +128,7 @@ namespace Utilities
                     this.Password = tmpCreds.password;
 
                     Console.WriteLine("Credentials were successfully loaded");
+                    return true;
                 }
                 catch (System.Runtime.Serialization.SerializationException)
                 {
@@ -138,7 +139,7 @@ namespace Utilities
             }
             Console.WriteLine("Credentials were not found.");
             Console.ReadKey();
-            Environment.Exit(1);
+            return false;
         }                
 
 
