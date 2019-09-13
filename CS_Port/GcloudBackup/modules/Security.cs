@@ -18,7 +18,7 @@ namespace Security
 
         public string User { get; set; }
 
-        private string Password {
+        public string Password {
 
             get => !String.IsNullOrEmpty(password) ? password : "";
             set => password = encrypt(value);

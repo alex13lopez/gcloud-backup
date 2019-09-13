@@ -11,16 +11,13 @@ namespace GcloudBackup
             Credentials creds = new Credentials(".\\Credentials\\", "testcreds");
             //creds.genCredentials();           
 
-            //creds.loadCredentials(); 
+            creds.loadCredentials(); 
 
-            //Console.WriteLine();
-            //Console.WriteLine(creds.User + " || " + creds.usePassword());
-            //Console.ReadKey();
-
-            Console.Write("*");
-            Console.Write("*");
-            Console.Write("\r");
+            Console.WriteLine();
+            Console.WriteLine("User: " + creds.User + "\nPassword: " + creds.usePassword());
             Console.ReadKey();
+
+         
 
         }
     }
