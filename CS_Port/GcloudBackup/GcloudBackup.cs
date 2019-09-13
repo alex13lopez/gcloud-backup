@@ -1,5 +1,6 @@
 ﻿using System;
-using Utilities;
+using Security;
+
 
 namespace GcloudBackup
 {
@@ -7,21 +8,20 @@ namespace GcloudBackup
     {
         static void Main()
         {
-           //Credentials creds = new Credentials(".\\Credentials\\", "testcreds");
+            Credentials creds = new Credentials(".\\Credentials\\", "testcreds");
+            //creds.genCredentials();           
 
-            //creds.genCredentials();
+            //creds.loadCredentials(); 
 
             //Console.WriteLine();
-            //Console.WriteLine(creds.User + " || " + creds.Password);
+            //Console.WriteLine(creds.User + " || " + creds.usePassword());
             //Console.ReadKey();
 
-            Credentials creds = new Credentials(".\\Credentials\\", "testcreds");
-
-            creds.loadCredentials(); 
-
-            Console.WriteLine();
-            Console.WriteLine(creds.User + " || " + creds.Password);
+            Console.Write("*");
+            Console.Write("*");
+            Console.Write("\r");
             Console.ReadKey();
+
         }
     }
 }

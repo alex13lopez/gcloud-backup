@@ -46,6 +46,7 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Include="GcloudBackup.cs" />
+    <Compile Include="modules\Security.cs" />
     <Compile Include="modules\Utils.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
   </ItemGroup>
