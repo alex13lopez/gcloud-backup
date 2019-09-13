@@ -20,7 +20,7 @@ namespace Security
 
         public string Password {
 
-            get => !String.IsNullOrEmpty(password) ? password : "";
+            get => usePassword().ToString();
             set => password = encrypt(value);
         }
 
@@ -28,7 +28,7 @@ namespace Security
         {
             SecureString securePassword = new SecureString();
 
-            foreach(char c in decrypt(this.Password))
+            foreach(char c in decrypt(this.password))
             {
                 securePassword.AppendChar(c);
             }

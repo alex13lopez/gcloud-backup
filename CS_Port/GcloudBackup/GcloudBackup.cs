@@ -14,7 +14,7 @@ namespace GcloudBackup
             creds.loadCredentials(); 
 
             Console.WriteLine();
-            Console.WriteLine("User: " + creds.User + "\nPassword: " + creds.usePassword());
+            Console.WriteLine("User: " + creds.User + "\nPassword: " + creds.Password);
             Console.ReadKey();
 
          
