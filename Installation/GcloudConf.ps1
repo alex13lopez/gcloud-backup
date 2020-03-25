@@ -1,4 +1,3 @@
-
 # Conf File Version: 1.2.1b
 
 # General options	
@@ -11,8 +10,8 @@ $cleanLog          = [System.IO.Path]::Combine($logDir, $dateLogs, "cleanLog.txt
 $removeLogFile     = [System.IO.Path]::Combine($logDir, $dateLogs, "removeLogFile.txt")
 $removeErrorLog    = [System.IO.Path]::Combine($logDir, $dateLogs, "removeErrorLog.txt")
 $credErrorLog	   = [System.IO.Path]::Combine($logDir, $dateLogs, "credErrorLog.txt")
-$backupPaths       = @('', '') # Comma-separated values
-$serverPath        = 'gs://' # Google cloud path to your bucket
+$backupPaths       = @('', '') # Comma-separated values without trailing backslashes
+$serverPath        = 'gs://' # Google cloud path to your bucket without trailing forwardslashes
 $daysToKeepBK      = 8 # 8 days because in case it's Sunday we'll keep the last full backup made on last Saturday
 
 # Mailing Options
