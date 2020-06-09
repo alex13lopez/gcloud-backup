@@ -1,6 +1,6 @@
 # Name: Gcloud Backup
 # Author: Alex López <arendevel@gmail.com>
-# Version: 9.2b
+# Version: 9.2.1b
 
 ########## Var & parms declaration #####################################################
 param(
@@ -190,7 +190,7 @@ function removeOldBackups() {
 			foreach ($file in $files) {
 			
 				$fileName = ($file -Split "/")[-1]
-				$fileDate = ((($file -Split "D")[2] -Split "T")[0]) -Replace '-' # Changed due to checksum of file in filename that caused error when obtaining the date
+				$fileDate = ((($file -Split "D")[1] -Split "T")[0]) -Replace '-' # This will change depending on the pattern of your file
 				$fileExt  = ($fileName -Split "\.")[-1]
 				
 					if ($fileExt -ne "vbm") { # We skip '.vbm' files since they are always the same and don't have date on it					
