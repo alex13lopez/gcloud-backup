@@ -1,6 +1,7 @@
 # Name: Gcloud Backup
-# Author: Alex López <arendevel@gmail.com>
-# Version: 9.2.1b
+# Author: Alex López <arendevel@gmail.com> || <alopez@hidalgosgroup.com>
+# Version: 9.3.1b
+# Veeam Backup And Replication V: 10+
 
 ########## Var & parms declaration #####################################################
 param(
@@ -173,27 +174,28 @@ function removeOldBackups() {
 	
 	$lastWeek = (Get-Date (Get-Date).AddDays($daysToKeepBK * (-1)) -UFormat "%Y%m%d") # Cambiamos a negativo el $daysToKeepBK para restar dias
 	
-	$files = @(gsutil ls -R "$serverPath" | Select-String -Pattern "\..*$")
+	$files = @(gsutil -m ls -R "$serverPath" | Select-String -Pattern "\..*$")
 	
 	if (! [string]::IsNullOrEmpty($files)) { 
 	
 		$timeNow = getTime
 	    $startedTime = $timeNow
 		echo ("Removing old backup files' job started at " + $timeNow) 1>> $logFile
-		
-		
+				
 		&{
 			if ($dryRun) {
 				echo "Running in 'dryRun' mode: No changes will be made."
 			}
 		
 			foreach ($file in $files) {
-			
-				$fileName = ($file -Split "/")[-1]
-				$fileDate = ((($file -Split "D")[1] -Split "T")[0]) -Replace '-' # This will change depending on the pattern of your file
+				
+				$fileName = ($file -Split "/")[-1]				
 				$fileExt  = ($fileName -Split "\.")[-1]
 				
-					if ($fileExt -ne "vbm") { # We skip '.vbm' files since they are always the same and don't have date on it					
+				if ($fileExt -ne "vbm") {
+					# We skip '.vbm' files since they are always the same and don't have date on it					
+					
+					$fileDate = ($file -replace '[\D]').substring(0,8)												
 							
 							if ($fileDate -lt $lastWeek) {
 								echo "The file: '$fileName' is older than $daysToKeepBK days... Wiping out!"
@@ -201,13 +203,13 @@ function removeOldBackups() {
 								if (!$dryRun) {				
 									gsutil -m -q rm -a "$file" # -m makes the operation multithreaded. -q causes gsutil to be quiet, basically: No progress reporting, only errors
 								}
-							}
-											
+							}											
 					}
 				 
 			}
 			
 		} 2>> $removeErrorLog 1> $removeLogFile
+		
 		
 		$timeNow = getTime
 	    echo ("Removing old backup files' job finished at " + $timeNow) 1>> $logFile 
@@ -294,4 +296,3 @@ try {
 catch [System.IO.DirectoryNotFoundException] {
 	Write-Host 'Please, check that file paths are well configured' -fore red -back black
 }
-
