@@ -1,7 +1,7 @@
 # Name: Gcloud Backup
 # Author: Alex López <arendevel@gmail.com>
 # Contributor: Iván Blasco
-# Version: 9.4b
+# Version: 9.5b
 # Veeam Backup And Replication V: 10+
 
 ########## Var & parms declaration #####################################################
@@ -76,8 +76,8 @@ function mailLogs($jobType, $server, $startedTime, $endTime, $attachment) {
 	if (!$chkCredentials){
 		
 		if ($unattended) {
-			echo "Credentials not found, please run this script again in interactive mode (No unattended flag activated) to generate them." 1> $credErrorLog
-			echo "Notice that whilst you do NOT delete '$credDir' your credentials will be safely secured with Windows Data Protection API (DPAPI) which can only be used in this machine." 1>> $credErrorLog
+			Write-Output "Credentials not found, please run this script again in interactive mode (No unattended flag activated) to generate them." 1> $credErrorLog
+			Write-Output "Notice that whilst you do NOT delete '$credDir' your credentials will be safely secured with Windows Data Protection API (DPAPI) which can only be used in this machine." 1>> $credErrorLog
 			return $false # Creds not found and running in 'unattended mode' so we cannot send the email
 		}
 		else {
@@ -152,18 +152,18 @@ function autoClean() {
 		
 		&{
 			if ($dryRun) {
-				echo "Running in 'dryRun' mode: No changes will be made."
+				Write-Output "Running in 'dryRun' mode: No changes will be made."
 			}
 				
 			$timeNow = getTime
-			echo ("Autocleaning started at " + $timeNow)
+			Write-Output ("Autocleaning started at " + $timeNow)
 			
 			if (!$dryRun) {
-				rm "$logDir\*$prevYear*"
+				Remove-Item "$logDir\*$prevYear*"
 			}
 				
 			$timeNow = getTime
-			echo ("Autocleaning finished at " + $timeNow)
+			Write-Output ("Autocleaning finished at " + $timeNow)
 			
 		} 2>> $errorLog 1>> $logFile
 		
@@ -181,45 +181,45 @@ function removeOldBackups() {
 	
 		$timeNow = getTime
 	    $startedTime = $timeNow
-		echo ("Removing old backup files' job started at " + $timeNow) 1>> $logFile
+		Write-Output ("Removing old backup files' job started at " + $timeNow) 1>> $logFile
 				
 		&{
 			if ($dryRun) {
-				echo "Running in 'dryRun' mode: No changes will be made."
+				Write-Output "Running in 'dryRun' mode: No changes will be made."
 			}
 		
 			foreach ($file in $files) {
 				
 				$fileName = ($file -Split "/")[-1]				
 				$fileExt  = ($fileName -Split "\.")[-1]
+				$backupName = ($file -Split "/")[-2]
 				
 				if ($fileExt -ne "vbm") {
 					# We skip '.vbm' files since they are always the same and don't have date on it					
 					
-					$fileDate = ($file -replace '[\D]').substring(0,8)												
+					$fileDate = (((($file -Split "/")[-1]) -Replace "$backupName") -Replace '[\D]').Substring(0,8)											
 							
-							if ($fileDate -lt $lastWeek) {
-								echo "The file: '$fileName' is older than $daysToKeepBK days... Wiping out!"
-													
-								if (!$dryRun) {				
-									gsutil -m -q rm -a "$file" # -m makes the operation multithreaded. -q causes gsutil to be quiet, basically: No progress reporting, only errors
-								}
-							}											
-					}
-				 
+					if ($fileDate -lt $lastWeek) {
+						Write-Output "The file: '$fileName' is older than $daysToKeepBK days... Wiping out!"
+											
+						if (!$dryRun) {				
+							gsutil -m -q rm -a "$file" # -m makes the operation multithreaded. -q causes gsutil to be quiet, basically: No progress reporting, only errors
+						}
+					}											
+				}				
 			}
 			
 		} 2>> $removeErrorLog 1> $removeLogFile
 		
 		
 		$timeNow = getTime
-	    echo ("Removing old backup files' job finished at " + $timeNow) 1>> $logFile 
+	    Write-Output ("Removing old backup files' job finished at " + $timeNow) 1>> $logFile 
 		
 		if ($isMailingOn) {
 			$isMailingOn = mailLogs "remove" "" $startedTime $timeNow $removeLogFile
 		}
 	}
-	else {echo "Could not get the files" 1>> $errorLog}
+	else {Write-Output "Could not get the files" 1>> $errorLog}
 	
 }
 
@@ -229,18 +229,18 @@ function doUpload() {
 	# We wrap all the code so we can send all the stdout and stderr to files in a single line
 	&{
 		if ($dryRun) {
-				echo "Running in 'dryRun' mode: No changes will be made."
+				Write-Output "Running in 'dryRun' mode: No changes will be made."
 		}
 		
 		$timeNow = getTime
-		echo ("Uploading Backups to Gcloud... Job started at " + $timeNow)
+		Write-Output ("Uploading Backups to Gcloud... Job started at " + $timeNow)
 
 		foreach ($path in $backupPaths) {
 			
 			$dirName = $path -replace '.*\\'
 			
 			$timeNow = getTime
-			echo ("Uploading $dirName to Gcloud... Job started at " + $timeNow)
+			Write-Output ("Uploading $dirName to Gcloud... Job started at " + $timeNow)
 			
 			$startedTime = $timeNow
 						
@@ -259,7 +259,7 @@ function doUpload() {
 					}
 					else 
 					{
-						echo "CygWin bash file doesn't exist, incorrect path" 1>> $errorLog
+						Write-Output "CygWin bash file doesn't exist, incorrect path" 1>> $errorLog
 					}
 				}
 				else 
@@ -269,7 +269,7 @@ function doUpload() {
 			}
 			
 			$timeNow = getTime
-			echo ("Uploading $dirName to Gcloud... Job finished at " + $timeNow)
+			Write-Output ("Uploading $dirName to Gcloud... Job finished at " + $timeNow)
 			
 			if ($isMailingOn) {
 				$isMailingOn = mailLogs "upload" $dirName $startedTime $timeNow # In case that sending email fails, we switch off the mailing option until script is restarted
@@ -278,7 +278,7 @@ function doUpload() {
 		}
 
 		$timeNow = getTime
-		echo ("Uploading Backups to Gcloud... Job finished at " + $timeNow)
+		Write-Output ("Uploading Backups to Gcloud... Job finished at " + $timeNow)
 
 	}  2>> $errorLog 1>> $logFile
 	
