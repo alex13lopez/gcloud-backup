@@ -10,13 +10,13 @@ setlocal EnableDelayedExpansion
 pushd %~dp0
 
 mkdir "C:\Gcloud" 1>nul 2>nul
-copy /A /V /Y ".\GcloudBackup.ps1" "C:\Gcloud\" 1>nul
+copy /A /V /Y "..\GcloudBackup.ps1" "C:\Gcloud\" 1>nul
 
 if exist "C:\Gcloud\GcloudConf.ps1" (
 	set /p ch="Old config has been found, do you wish to keep it? (y/n): "
 	
 	if "!ch!" == "n" (
-		copy /A /V /Y ".\GcloudConf.ps1" "C:\Gcloud\" 1>nul
+		copy /A /V /Y "..\GcloudConf.ps1" "C:\Gcloud\" 1>nul
 	)
 	
 	if "!ch!" == "y" (
@@ -29,7 +29,7 @@ if exist "C:\Gcloud\GcloudConf.ps1" (
 )
 
 if not exist "C:\Gcloud\GcloudConf.ps1" (
-	copy /A /V /Y ".\GcloudConf.ps1" "C:\Gcloud\" 1>nul	
+	copy /A /V /Y "..\GcloudConf.ps1" "C:\Gcloud\" 1>nul	
 )
 
 
