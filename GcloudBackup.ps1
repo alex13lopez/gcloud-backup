@@ -1,6 +1,7 @@
 # Name: Gcloud Backup
 # Author: Alex López <arendevel@gmail.com>
-# Version: 9.3.1b
+# Contributor: Iván Blasco
+# Version: 9.4b
 # Veeam Backup And Replication V: 10+
 
 ########## Var & parms declaration #####################################################
@@ -248,7 +249,23 @@ function doUpload() {
 			if (!$dryRun) {
 				# Changed back to rsync because copy does copy all the files whether they are changed or not
 				# But now, -d option is skipped since we deal with the old backup files manually with removeOldBackups
-				gsutil -m -q rsync -r "$path" "$serverPath/$dirName"
+				
+				if($useCygWin -eq $true) # We run the CygWin implementation
+				{
+					if (Test-Path $CygWinBash -PathType Leaf)
+					{
+						$cygWinPath = $path -replace "\\","/" # Convert to UNIX path
+						& $CygWinBash --login -c "$CygWinSDKPath/gsutil -m -q rsync -r  ""$cygWinPath"" ""$serverPath/$dirName"" " 2>&1 | Out-Host
+					}
+					else 
+					{
+						echo "CygWin bash file doesn't exist, incorrect path" 1>> $errorLog
+					}
+				}
+				else 
+				{
+					gsutil -m -q rsync -r "$path" "$serverPath/$dirName"
+				}
 			}
 			
 			$timeNow = getTime
