@@ -1,7 +1,7 @@
 # Name: Gcloud Backup
 # Author: Alex López <arendevel@gmail.com>
 # Contributor: Iván Blasco
-# Version: 9.5b
+# Version: 9.6b
 # Veeam Backup And Replication V: 10+
 
 ########## Var & parms declaration #####################################################
@@ -145,6 +145,28 @@ function sendErrorLog($subject, $errorLogFile) {
 	
 }
 
+function cygWinCommand($command, $skipDryRun) {
+
+	if ($skipDryRun -eq $null) { $skipDryRun = $false }
+
+	if (Test-Path $CygWinBash -PathType Leaf)
+	{
+		if ($dryRun -and !$skipDryRun) # The skip dry run is in case we want a command to run even while using the dryRun parameter
+		{
+			& $CygWinBash --login -c "echo Running in CygWin: $command" 2>&1 | Out-Host #TestRun command
+		}
+		else 
+		{
+			& $CygWinBash --login -c "$CygWinSDKPath/$command" 2>&1 #Run command
+		}
+	}
+	else 
+	{
+		Write-Output "CygWin bash file doesn't exist, incorrect path" 1>> $errorLog
+	}
+	
+}
+
 function autoClean() {
 
 		$currYear = Get-Date -UFormat "%Y"
@@ -166,16 +188,20 @@ function autoClean() {
 			Write-Output ("Autocleaning finished at " + $timeNow)
 			
 		} 2>> $errorLog 1>> $logFile
-		
-		
 }
-
 
 function removeOldBackups() {
 	
 	$lastWeek = (Get-Date (Get-Date).AddDays($daysToKeepBK * (-1)) -UFormat "%Y%m%d") # Cambiamos a negativo el $daysToKeepBK para restar dias
 	
-	$files = @(gsutil -m ls -R "$serverPath" | Select-String -Pattern "\..*$")
+	if($useCygWin) # We run the CygWin implementation
+	{
+		$files = @(cygWinCommand "gsutil -m ls -R ""$serverPath""" $true | Select-String -Pattern "\..*$")
+	}
+	else 
+	{
+		$files = @(gsutil -m ls -R "$serverPath" | Select-String -Pattern "\..*$")
+	}
 	
 	if (! [string]::IsNullOrEmpty($files)) { 
 	
@@ -189,7 +215,6 @@ function removeOldBackups() {
 			}
 		
 			foreach ($file in $files) {
-				
 				$fileName = ($file -Split "/")[-1]				
 				$fileExt  = ($fileName -Split "\.")[-1]
 				$backupName = ($file -Split "/")[-2]
@@ -202,8 +227,17 @@ function removeOldBackups() {
 					if ($fileDate -lt $lastWeek) {
 						Write-Output "The file: '$fileName' is older than $daysToKeepBK days... Wiping out!"
 											
-						if (!$dryRun) {				
-							gsutil -m -q rm -a "$file" # -m makes the operation multithreaded. -q causes gsutil to be quiet, basically: No progress reporting, only errors
+						if (!$dryRun) 
+						{				
+							if($useCygWin) # We run the CygWin implementation
+							{
+								$cygWinPath = $path -replace "\\","/" # Convert to UNIX path
+								cygWinCommand("gsutil -m -q rm -a ""$file""")
+							}
+							else 
+							{
+								gsutil -m -q rm -a "$file" # -m makes the operation multithreaded. -q causes gsutil to be quiet, basically: No progress reporting, only errors
+							}
 						}
 					}											
 				}				
@@ -250,17 +284,10 @@ function doUpload() {
 				# Changed back to rsync because copy does copy all the files whether they are changed or not
 				# But now, -d option is skipped since we deal with the old backup files manually with removeOldBackups
 				
-				if($useCygWin -eq $true) # We run the CygWin implementation
+				if($useCygWin) # We run the CygWin implementation
 				{
-					if (Test-Path $CygWinBash -PathType Leaf)
-					{
-						$cygWinPath = $path -replace "\\","/" # Convert to UNIX path
-						& $CygWinBash --login -c "$CygWinSDKPath/gsutil -m -q rsync -r  ""$cygWinPath"" ""$serverPath/$dirName"" " 2>&1 | Out-Host
-					}
-					else 
-					{
-						Write-Output "CygWin bash file doesn't exist, incorrect path" 1>> $errorLog
-					}
+					$cygWinPath = $path -replace "\\","/" # Convert to UNIX path
+					cygWinCommand("gsutil -m -q rsync -r  ""$cygWinPath"" ""$serverPath/$dirName"" ")
 				}
 				else 
 				{
