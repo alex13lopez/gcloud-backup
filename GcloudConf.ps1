@@ -1,4 +1,4 @@
-# Conf File Version: 1.2.1b
+# Conf File Version: 1.3
 
 # General options	
 $dateLogs          = Get-Date -UFormat '%Y%m%d' # A more powershelly way of doing this is: '{0:yyyyMMdd}' -f (Get-Date)  
@@ -20,3 +20,15 @@ $usrFile     = Join-Path -Path $credDir -ChildPath 'Username'
 $pwFile      = Join-Path -Path $credDir -ChildPath 'Password'
 $isMailingOn = $false
 $mailTo 	 = ''
+
+# CygWin Options
+$CygWinBash = 'C:\cygwin64\bin\bash.exe'
+$CygWinSDKPath = '~/google-cloud-sdk/bin' # Must not end with trailing backslash (path of the sdk installation in CygWin)
+$useCygWin = $true #Set to false if you don't wish to use the CygWin implementation
+
+# The CygWin implementation must have the Gcloud SDK configured, plus all the dependencies the SDK has, how to prepare CygWin to work properly:
+	# Packages for cygwin: wget, curl, gcc-core, python27, python27-devel, python27-pip, python27-setuptools
+	# Download the SDK with`wget https://dl.google.com/dl/cloudsdk/channels/rapid/downloads/google-cloud-sdk-287.0.0-linux-x86_64.tar.gz`
+	# Extract with tar -zxvf google-cloud-sdk-287.0.0-linux-x86_64.tar.gz
+	# Add to the path export PATH=$PATH:~/google-cloud-sdk/bin and update the CygWinSDKPath variable
+	# Run Gcloud init to finish with the installation
