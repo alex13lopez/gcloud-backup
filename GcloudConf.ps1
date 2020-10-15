@@ -24,7 +24,7 @@ $mailTo 	 = ''
 # CygWin Options
 $CygWinBash = 'C:\cygwin64\bin\bash.exe'
 $CygWinSDKPath = '~/google-cloud-sdk/bin' # Must not end with trailing backslash (path of the sdk installation in CygWin)
-$useCygWin = $true #Set to false if you don't wish to use the CygWin implementation
+$useCygWin = $false #Set to false if you don't wish to use the CygWin implementation
 
 # The CygWin implementation must have the Gcloud SDK configured, plus all the dependencies the SDK has, how to prepare CygWin to work properly:
 	# Packages for cygwin: wget, curl, gcc-core, python27, python27-devel, python27-pip, python27-setuptools
