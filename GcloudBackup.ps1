@@ -196,7 +196,7 @@ function removeOldBackups() {
 	
 	if($useCygWin) # We run the CygWin implementation
 	{
-		$files = @(cygWinCommand "gsutil -m ls -lR ""$serverPath""" $true | Select-String -Pattern "\..*$" | Select-String -Pattern "TOTAL" -NotMatch)
+		$files = @(cygWinCommand "gsutil -m ls -lR `'$serverPath`'" $true | Select-String -Pattern "\..*$" | Select-String -Pattern "TOTAL" -NotMatch)
 	}
 	else 
 	{
@@ -232,7 +232,7 @@ function removeOldBackups() {
 							if($useCygWin) # We run the CygWin implementation
 							{
 
-								cygWinCommand("gsutil -m -q rm -a ""$file""")
+								cygWinCommand("gsutil -m -q rm -a `'$file`'")
 							}
 							else 
 							{
@@ -287,7 +287,7 @@ function doUpload() {
 				if($useCygWin) # We run the CygWin implementation
 				{
 					$cygWinPath = $path -replace "\\","/" # Convert to UNIX path
-					cygWinCommand("gsutil -m -q rsync -r  ""$cygWinPath"" ""$serverPath/$dirName"" ")
+					cygWinCommand("gsutil -m -q rsync -r  `'$cygWinPath`' `'$serverPath/$dirName`'")
 				}
 				else 
 				{
