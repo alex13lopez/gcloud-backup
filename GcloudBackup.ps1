@@ -145,6 +145,11 @@ function sendErrorLog($subject, $errorLogFile) {
 	
 }
 
+function getFileName($file, $nameLimitator) {
+	$limitatorPosition = $file.IndexOf($nameLimitator)
+	return $file.Substring($limitatorPosition)
+}
+
 function cygWinCommand($command, $skipDryRun) {
 
 	if ($skipDryRun -eq $null) { $skipDryRun = $false }
@@ -216,7 +221,10 @@ function removeOldBackups() {
 		
 			foreach ($file in $files) {
 				# We remove trim spaces, then replace multiple spaces with one space only and then we split it into variables
-				$fileSize,$fileDate,$filePath = (("$file".trim()) -Replace '\s+', ' ') -Split ' '								
+				$fileSize,$fileDate = (("$file".trim()) -Replace '\s+', ' ').Split(' ')[0,1]
+				
+				$nameLimitator = "gs://" # We use this variable to get the name
+				$filePath = getFileName $file $nameLimitator
 
 				$fileName = ($filePath -Split "/")[-1]				
 				$fileExt  = ($fileName -Split "\.")[-1]
