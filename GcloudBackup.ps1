@@ -1,7 +1,7 @@
 # Name: Gcloud Backup
 # Author: Alex López <arendevel@gmail.com>
 # Contributor: Iván Blasco
-# Version: 9.6b
+# Version: 9.7b
 # Veeam Backup And Replication V: 10+
 
 ########## Var & parms declaration #####################################################
@@ -196,11 +196,11 @@ function removeOldBackups() {
 	
 	if($useCygWin) # We run the CygWin implementation
 	{
-		$files = @(cygWinCommand "gsutil -m ls -R ""$serverPath""" $true | Select-String -Pattern "\..*$")
+		$files = @(cygWinCommand "gsutil -m ls -lR ""$serverPath""" $true | Select-String -Pattern "\..*$" | Select-String -Pattern "TOTAL" -NotMatch)
 	}
 	else 
 	{
-		$files = @(gsutil -m ls -R "$serverPath" | Select-String -Pattern "\..*$")
+		$files = @(gsutil -m ls -lR "$serverPath" | Select-String -Pattern "\..*$" | Select-String -Pattern "TOTAL" -NotMatch)
 	}
 	
 	if (! [string]::IsNullOrEmpty($files)) { 
@@ -215,23 +215,23 @@ function removeOldBackups() {
 			}
 		
 			foreach ($file in $files) {
-				$fileName = ($file -Split "/")[-1]				
+				# We remove trim spaces, then replace multiple spaces with one space only and then we split it into variables
+				$fileSize,$fileDate,$filePath = (("$file".trim()) -Replace '\s+', ' ') -Split ' '								
+
+				$fileName = ($filePath -Split "/")[-1]				
 				$fileExt  = ($fileName -Split "\.")[-1]
-				$backupName = ($file -Split "/")[-2]
 				
 				if ($fileExt -ne "vbm") {
-					# We skip '.vbm' files since they are always the same and don't have date on it					
-					
-					$fileDate = (((($file -Split "/")[-1]) -Replace "$backupName") -Replace '[\D]').Substring(0,8)											
-							
+					# We skip '.vbm' files since they are always the same and don't have date on it																							
+
 					if ($fileDate -lt $lastWeek) {
 						Write-Output "The file: '$fileName' is older than $daysToKeepBK days... Wiping out!"
-											
+
 						if (!$dryRun) 
 						{				
 							if($useCygWin) # We run the CygWin implementation
 							{
-								$cygWinPath = $path -replace "\\","/" # Convert to UNIX path
+
 								cygWinCommand("gsutil -m -q rm -a ""$file""")
 							}
 							else 
