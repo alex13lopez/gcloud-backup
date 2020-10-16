@@ -1,4 +1,4 @@
-# Conf File Version: 1.3
+# Conf File Version: 1.3.2
 
 # General options	
 $dateLogs          = Get-Date -UFormat '%Y%m%d' # A more powershelly way of doing this is: '{0:yyyyMMdd}' -f (Get-Date)  
@@ -27,11 +27,11 @@ $CygWinSDKPath = '~/google-cloud-sdk/bin' # Must not end with trailing backslash
 $useCygWin = $false #Set to false if you don't wish to use the CygWin implementation
 
 # The CygWin implementation must have the Gcloud SDK configured, plus all the dependencies the SDK has, how to prepare CygWin to work properly:
-	# IMPORTANT! In case you have an old installation in the OS of SDK you have to remove it from the Path 
+	# IMPORTANT! In case you have an old installation in the OS of SDK you have to remove it from the Path (and uninstall it if you wish)
 	# Packages for cygwin: wget, curl, gcc-core, python27, python27-devel, python27-pip, python27-setuptools
 	# Download the SDK with `wget https://dl.google.com/dl/cloudsdk/channels/rapid/downloads/google-cloud-sdk-287.0.0-linux-x86_64.tar.gz`
-	# Extract with tar -zxvf google-cloud-sdk-287.0.0-linux-x86_64.tar.gz
-	# Add to the path export PATH=$PATH:~/google-cloud-sdk/bin and update the CygWinSDKPath variable
-	# Also install CRCMOD with pip2 install crcmod
-	# Run Gcloud init to finish with the installation
+	# Extract with `tar -zxvf google-cloud-sdk-287.0.0-linux-x86_64.tar.gz`
+	# Add to the path with `export PATH=$PATH:~/google-cloud-sdk/bin` and update the CygWinSDKPath variable (if its different than in home directory)
+	# Also install CRCMOD with `pip2 install crcmod`
+	# Run `gcloud init` to finish with the installation
 	
