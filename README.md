@@ -28,6 +28,16 @@ This project provides an easy-to-setup and ready-to-deploy script to sync backup
   * -unattended: When the script needs user input won't wait for it when this flag is on, so the script will still run. But the warning/error will be logged in the log file. (This might happen for example, if you enabled mailing feature but haven't generated the credentials yet. If you don't -unattended, the script will understand you're attending to the script's behaviour and ask for credentials, instead, if you --unattended the script will log missing credentials to the log and disable temporarily the mailing feature.)
   * -genCreds: Script runs only to generate the credentials you want for the mailing feature.
 
+# HOW TO USE CYGWIN
+The CygWin implementation must have the Gcloud SDK configured, plus all the dependencies the SDK has, how to prepare CygWin to work properly:
+**IMPORTANT!** In case you have an old installation in the OS of SDK you have to remove it from the Path (and uninstall it if you wish)
+* Packages for cygwin: wget, curl, gcc-core, python27, python27-devel, python27-pip, python27-setuptools
+* Download the SDK with `wget https://dl.google.com/dl/cloudsdk/channels/rapid/downloads/google-cloud-sdk-287.0.0-linux-x86_64.tar.gz`
+* Extract with `tar -zxvf google-cloud-sdk-287.0.0-linux-x86_64.tar.gz`
+* Add to the path with `export PATH=$PATH:~/google-cloud-sdk/bin` and update the CygWinSDKPath variable (if its different than in home directory)
+* Also install CRCMOD with `pip2 install crcmod`
+* Run `gcloud init` to finish with the installation
+
 # UPDATE NOTES
 **Important:** as of version 9.1.2b: Log folder name changed to "Logs" instead of GcloudLogs, if you still want to use the old naming system you're free to change it in the Conf file.
 

@@ -1,4 +1,4 @@
-# Conf File Version: 1.3.2
+# Conf File Version: 1.3.2.1
 
 # General options	
 $dateLogs          = Get-Date -UFormat '%Y%m%d' # A more powershelly way of doing this is: '{0:yyyyMMdd}' -f (Get-Date)  
@@ -11,7 +11,7 @@ $removeLogFile     = [System.IO.Path]::Combine($logDir, $dateLogs, "removeLogFil
 $removeErrorLog    = [System.IO.Path]::Combine($logDir, $dateLogs, "removeErrorLog.txt")
 $credErrorLog	   = [System.IO.Path]::Combine($logDir, $dateLogs, "credErrorLog.txt")
 $backupPaths       = @('', '') # Comma-separated values without trailing backslashes
-$serverPath        = 'gs://' # Google cloud path to your bucket without trailing forwardslashes
+$serverPath        = 'gs://backups-maxi/backup' # Google cloud path to your bucket without trailing forwardslashes
 $daysToKeepBK      = 8 # 8 days because in case it's Sunday we'll keep the last full backup made on last Saturday
 
 # Mailing Options
@@ -24,14 +24,7 @@ $mailTo 	 = ''
 # CygWin Options
 $CygWinBash = 'C:\cygwin64\bin\bash.exe'
 $CygWinSDKPath = '~/google-cloud-sdk/bin' # Must not end with trailing backslash (path of the sdk installation in CygWin)
-$useCygWin = $false #Set to false if you don't wish to use the CygWin implementation
+$useCygWin = $true #Set to false if you don't wish to use the CygWin implementation
 
-# The CygWin implementation must have the Gcloud SDK configured, plus all the dependencies the SDK has, how to prepare CygWin to work properly:
-	# IMPORTANT! In case you have an old installation in the OS of SDK you have to remove it from the Path (and uninstall it if you wish)
-	# Packages for cygwin: wget, curl, gcc-core, python27, python27-devel, python27-pip, python27-setuptools
-	# Download the SDK with `wget https://dl.google.com/dl/cloudsdk/channels/rapid/downloads/google-cloud-sdk-287.0.0-linux-x86_64.tar.gz`
-	# Extract with `tar -zxvf google-cloud-sdk-287.0.0-linux-x86_64.tar.gz`
-	# Add to the path with `export PATH=$PATH:~/google-cloud-sdk/bin` and update the CygWinSDKPath variable (if its different than in home directory)
-	# Also install CRCMOD with `pip2 install crcmod`
-	# Run `gcloud init` to finish with the installation
-	
+# We moved the instructions on how to use CygWin to the README.md because some Anti-Virus detected the instructions as Ofuscated Code 
+# (Since the instructions have links and such, some paranoid Anti-Virus like Kaspersky Endpoint detected it as Obfuscated Code)

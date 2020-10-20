@@ -1,7 +1,7 @@
 # Name: Gcloud Backup
 # Author: Alex López <arendevel@gmail.com>
 # Contributor: Iván Blasco
-# Version: 9.7b
+# Version: 9.7.3b
 # Veeam Backup And Replication V: 10+
 
 ########## Var & parms declaration #####################################################
@@ -33,6 +33,11 @@ catch {
 	exit 1
 }
 #########################################################################################
+
+# If we're debugging we set the $DebugPreference to continue to avoid Powershell asking annoyingly if we want to continue every time it finds a "Write-Debug"
+If ($PSBoundParameters['Debug']) {
+    $DebugPreference = 'Continue'
+}
 
 function getTime() {
 	return Get-Date -UFormat "%d-%m-%Y @ %H:%M"
@@ -145,24 +150,26 @@ function sendErrorLog($subject, $errorLogFile) {
 	
 }
 
-function getFileName($file, $nameLimitator) {
+function getFileName([string]$file, [string]$nameLimitator) {
+	# We force $file into being an string because otherwise the .IndexOf() and the .Substring() functions will fail	
 	$limitatorPosition = $file.IndexOf($nameLimitator)
 	return $file.Substring($limitatorPosition)
 }
 
-function cygWinCommand($command, $skipDryRun) {
+function cygWinCommand($command, $ForceRun) {
 
-	if ($skipDryRun -eq $null) { $skipDryRun = $false }
+	if ($ForceRun -eq $null) { $ForceRun = $false }
 
 	if (Test-Path $CygWinBash -PathType Leaf)
 	{
-		if ($dryRun -and !$skipDryRun) # The skip dry run is in case we want a command to run even while using the dryRun parameter
+		if ($dryRun) # If DryRun we say what we're going to do
 		{
-			& $CygWinBash --login -c "echo Running in CygWin: $command" 2>&1 | Out-Host #TestRun command
+			& $CygWinBash --login -c "echo Running in CygWin: $command" >> $logFile 2> $errorLog | Out-Host #TestRun command
 		}
-		else 
+		
+		if ($ForceRun -or !$dryRun) # If we're running in DryRun we don't run the command unless we force it
 		{
-			& $CygWinBash --login -c "$CygWinSDKPath/$command" 2>&1 #Run command
+			& $CygWinBash --login -c "$CygWinSDKPath/$command" >> $logFile 2> $errorLog #Run command
 		}
 	}
 	else 
@@ -197,7 +204,7 @@ function autoClean() {
 
 function removeOldBackups() {
 	
-	$lastWeek = (Get-Date (Get-Date).AddDays($daysToKeepBK * (-1)) -UFormat "%Y%m%d") # Cambiamos a negativo el $daysToKeepBK para restar dias
+	[datetime]$lastWeek = (Get-Date (Get-Date).AddDays($daysToKeepBK * (-1)) -UFormat "%Y-%m-%d") # Cambiamos a negativo el $daysToKeepBK para restar dias
 	
 	if($useCygWin) # We run the CygWin implementation
 	{
@@ -220,9 +227,14 @@ function removeOldBackups() {
 			}
 		
 			foreach ($file in $files) {
-				# We remove trim spaces, then replace multiple spaces with one space only and then we split it into variables
-				$fileSize,$fileDate = (("$file".trim()) -Replace '\s+', ' ').Split(' ')[0,1]
+				# We force $file into being a string cause otherwise the .trim() function below will sometimes fail
+				$file = [string]$file
 				
+				# We remove trim spaces, then replace multiple spaces with one space only and then we split it into variables
+				$fileSize,$fileDate = (($file.trim()) -Replace '\s+', ' ').Split(' ')[0,1]
+				
+				[datetime]$fileDate = Get-Date -Date $fileDate -UFormat "%Y-%m-%d"
+
 				$nameLimitator = "gs://" # We use this variable to get the name
 				$filePath = getFileName $file $nameLimitator
 
@@ -231,10 +243,12 @@ function removeOldBackups() {
 				
 				if ($fileExt -ne "vbm") {
 					# We skip '.vbm' files since they are always the same and don't have date on it																							
+					
+					Write-Debug "FilePath: $filePath | FileName: $fileName | FileDate: $fileDate | LastWeekDate: $lastWeek | FileExt: $fileExt"
 
 					if ($fileDate -lt $lastWeek) {
 						Write-Output "The file: '$fileName' is older than $daysToKeepBK days... Wiping out!"
-
+						
 						if (!$dryRun) 
 						{				
 							if($useCygWin) # We run the CygWin implementation
