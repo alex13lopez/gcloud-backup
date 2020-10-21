@@ -11,7 +11,7 @@ $removeLogFile     = [System.IO.Path]::Combine($logDir, $dateLogs, "removeLogFil
 $removeErrorLog    = [System.IO.Path]::Combine($logDir, $dateLogs, "removeErrorLog.txt")
 $credErrorLog	   = [System.IO.Path]::Combine($logDir, $dateLogs, "credErrorLog.txt")
 $backupPaths       = @('', '') # Comma-separated values without trailing backslashes
-$serverPath        = 'gs://backups-maxi/backup' # Google cloud path to your bucket without trailing forwardslashes
+$serverPath        = '' # Google cloud path to your bucket without trailing forwardslashes
 $daysToKeepBK      = 8 # 8 days because in case it's Sunday we'll keep the last full backup made on last Saturday
 
 # Mailing Options
@@ -24,7 +24,7 @@ $mailTo 	 = ''
 # CygWin Options
 $CygWinBash = 'C:\cygwin64\bin\bash.exe'
 $CygWinSDKPath = '~/google-cloud-sdk/bin' # Must not end with trailing backslash (path of the sdk installation in CygWin)
-$useCygWin = $true #Set to false if you don't wish to use the CygWin implementation
+$useCygWin = $false #Set to false if you don't wish to use the CygWin implementation
 
 # We moved the instructions on how to use CygWin to the README.md because some Anti-Virus detected the instructions as Ofuscated Code 
 # (Since the instructions have links and such, some paranoid Anti-Virus like Kaspersky Endpoint detected it as Obfuscated Code)
