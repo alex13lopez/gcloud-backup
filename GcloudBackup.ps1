@@ -230,7 +230,7 @@ function removeOldBackups() {
 				# We force $file into being a string cause otherwise the .trim() function below will sometimes fail
 				$file = [string]$file
 				
-				# We remove trim spaces, then replace multiple spaces with one space only and then we split it into variables
+				# We trim spaces, then replace multiple spaces with one space only and then we split it into variables
 				$fileSize,$fileDate = (($file.trim()) -Replace '\s+', ' ').Split(' ')[0,1]
 				
 				[datetime]$fileDate = Get-Date -Date $fileDate -UFormat "%Y-%m-%d"
