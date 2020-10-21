@@ -11,7 +11,7 @@ $removeLogFile     = [System.IO.Path]::Combine($logDir, $dateLogs, "removeLogFil
 $removeErrorLog    = [System.IO.Path]::Combine($logDir, $dateLogs, "removeErrorLog.txt")
 $credErrorLog	   = [System.IO.Path]::Combine($logDir, $dateLogs, "credErrorLog.txt")
 $backupPaths       = @('', '') # Comma-separated values without trailing backslashes
-$serverPath        = '' # Google cloud path to your bucket without trailing forwardslashes
+$serverPath        = 'gs://' # Google cloud path to your bucket without trailing forwardslashes
 $daysToKeepBK      = 8 # 8 days because in case it's Sunday we'll keep the last full backup made on last Saturday
 
 # Mailing Options
