@@ -1,7 +1,7 @@
 # Name: Gcloud Backup
 # Author: Alex López <arendevel@gmail.com>
 # Contributor: Iván Blasco
-# Version: 9.7.3b
+# Version: 9.7.3.1b
 # Veeam Backup And Replication V: 10+
 
 ########## Var & parms declaration #####################################################
@@ -247,20 +247,18 @@ function removeOldBackups() {
 					Write-Debug "FilePath: $filePath | FileName: $fileName | FileDate: $fileDate | LastWeekDate: $lastWeek | FileExt: $fileExt"
 
 					if ($fileDate -lt $lastWeek) {
-						Write-Output "The file: '$fileName' is older than $daysToKeepBK days... Wiping out!"
-						
-						if (!$dryRun) 
-						{				
-							if($useCygWin) # We run the CygWin implementation
-							{
+						Write-Output "The file: '$fileName' is older than $daysToKeepBK days... Wiping out!"						
+										
+						# Moved dryRun down because cygWinCommand() handles $dryRun differently						
+						if($useCygWin) # We run the CygWin implementation
+						{
 
-								cygWinCommand("gsutil -m -q rm -a ""$file""")
-							}
-							else 
-							{
-								gsutil -m -q rm -a "$file" # -m makes the operation multithreaded. -q causes gsutil to be quiet, basically: No progress reporting, only errors
-							}
+							cygWinCommand("gsutil -m -q rm -a ""$file""")
 						}
+						elseif (!$dryRun) 							
+						{
+							gsutil -m -q rm -a "$file" # -m makes the operation multithreaded. -q causes gsutil to be quiet, basically: No progress reporting, only errors
+						}					
 					}											
 				}				
 			}
