@@ -164,17 +164,17 @@ function cygWinCommand($command, $ForceRun) {
 	{
 		if ($dryRun) # If DryRun we say what we're going to do
 		{
-			& $CygWinBash --login -c "echo Running in CygWin: $command" >> $logFile 2> $errorLog | Out-Host #TestRun command
+			& $CygWinBash --login -c "echo Running in CygWin: $command" | Out-Host #TestRun command
 		}
 		
 		if ($ForceRun -or !$dryRun) # If we're running in DryRun we don't run the command unless we force it
 		{
-			& $CygWinBash --login -c "$CygWinSDKPath/$command" >> $logFile 2> $errorLog #Run command
+			& $CygWinBash --login -c "$CygWinSDKPath/$command" #Run command
 		}
 	}
 	else 
 	{
-		Write-Output "CygWin bash file doesn't exist, incorrect path" 1>> $errorLog
+		Write-Output "CygWin bash file doesn't exist, incorrect path"
 	}
 	
 }
