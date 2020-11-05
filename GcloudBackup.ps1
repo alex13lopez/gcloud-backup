@@ -1,7 +1,7 @@
 # Name: Gcloud Backup
 # Author: Alex López <arendevel@gmail.com>
 # Contributor: Iván Blasco
-# Version: 10.0.1a
+# Version: 10.1.2b
 # Veeam Backup And Replication V: 10+
 
 ########## Var & parms declaration #####################################################
@@ -110,42 +110,6 @@ function getCredentials($usrFile, $pwFile) {
 	return  New-Object -TypeName System.Management.Automation.PSCredential -ArgumentList (Get-Content $usrFile), (Get-Content $pwFile | ConvertTo-SecureString)
 }
 
-function mountSharedDrive() {
-
-	if (-not (Test-Path -Path "$sharePath")) {
-		
-		$newDriveLeter = ""
-
-		if (-not (Test-Path -Path "$driveLetter")) {
-			# If the drive letter we want to use it's not being used already, we mount it
-			$creds = getCredentials "$shareUsrFile" "$sharePwFile"
-
-			$net = new-object -ComObject WScript.Network
-			$net.MapNetworkDrive("$driveLetter","$sharePath",$false,$creds.Username,$creds.Password)
-		}
-		else {
-			# We find next available drive letter and we mount it
-			# 68 - 90 are the Unicode represented characters of letters D..Z
-			$newDriveLeter = (68..90 | ForEach-Object {$L=[char]$_; if ((Get-PSDrive -PSProvider FileSystem).Name -notContains $L) {$L}})[0]
-			$newDriveLeter = $newDriveLeter + ':' # We add the trailing ":" to the letter that
-
-			$creds = getCredentials "$shareUsrFile" "$sharePwFile"
-
-			$net = new-object -ComObject WScript.Network
-			$net.MapNetworkDrive("$newDriveLeter","$sharePath",$false,$creds.Username,$creds.Password)
-
-			# We warn the user in the log that he might want to change the drive letter in the conf
-			Write-Host "Drive letter: $driveLetter is not available. You might want to change the drive letter in GcloudConf.ps1 to: ${newDriveLetter}."
-
-			# And we change de drive letter to the next available
-			$driveLetter = $newDriveLeter
-			
-		}
-	}	
-
-	
-}
-
 function mailLogs($jobType, $server, $startedTime, $endTime, $attachment) {
     
 	# Mail Setup
@@ -240,9 +204,13 @@ function manageShare([string]$action) {
 
 	if ($action -eq 'mount') {
 		
+		Write-Debug "sharePath: $sharePath"
+
 		if (-not (Test-Path -Path "$sharePath")) {
 			
 			$newDriveLetter = ""
+
+			Write-Debug "driveLetter: $driveLetter"
 
 			if (-not (Test-Path -Path "$driveLetter")) {
 				# If the drive letter we want to use it's not being used already, we mount it
@@ -251,24 +219,22 @@ function manageShare([string]$action) {
 
 				$creds = getCredentials "$shareUsrFile" "$sharePwFile"
 
-				$net = New-Object -ComObject WScript.Network
-				$net.MapNetworkDrive("$driveLetter", "$sharePath", $false, "$creds.Username", "$creds.Password")
+				$driveLetterName = $driveLetter -Replace ":" # We need to remove the semicolon for New-PSDrive
+				New-PSDrive -Name $driveLetterName -PSProvider FileSystem -Root "$sharePath" -Persist:$false -Credential $creds	> $null			
 			}
 			else {
 				# We find next available drive letter and we mount it
 				# 68 - 90 are the Unicode represented characters of letters D..Z
 				$newDriveLetter = (68..90 | ForEach-Object {$L=[char]$_; if ((Get-PSDrive -PSProvider FileSystem).Name -notContains $L) {$L}})[0]
-				$newDriveLetter = $newDriveLetter + ':' # We add the trailing ":" to the letter so it is a valid drive letter recognised by MapNetWorkDrive()
 				
 				Write-Debug "Drive letter is being used already, next available drive letter is: $newDriveLetter"
 
 				$creds = getCredentials "$shareUsrFile" "$sharePwFile"
-
-				$net = New-Object -ComObject WScript.Network
-				$net.MapNetworkDrive("$newDriveLetter", "$sharePath", $false, "$creds.Username", "$creds.Password")
+				
+				New-PSDrive -Name $newDriveLetter -PSProvider FileSystem -Root "$sharePath" -Persist:$false -Credential $creds > $null
 
 				# We warn the user in the log that he might want to change the drive letter in the conf
-				Write-Host "Drive letter: $driveLetter is not available. You might want to change the drive letter in GcloudConf.ps1 to: ${newDriveLetter}."
+				Write-Output "Drive letter: $driveLetter is not available. You might want to change the drive letter in GcloudConf.ps1 to ${newDriveLetter}:" >> $logFile
 
 				# And we change the drive letter to the next available
 				$driveLetter = $newDriveLetter	
@@ -276,9 +242,8 @@ function manageShare([string]$action) {
 		}
 	}
 	elseif ($action -eq 'unmount') {
-		Write-Debug "Drive letter: $driveLetter"
-		Remove-PSDrive -PSProvider FileSystem -Name ("$driveLetter" -Replace ":") -ErrorAction Continue
-		Net Use $driveLetter /delete # Sometimes Remove-PSDrive won't work for network drives, so we use 'Net Use' for those cases
+		$driveLetterName = $driveLetter -Replace ":" # We need to remove the semicolon for Remove-PSDrive
+		Remove-PSDrive -PSProvider FileSystem -Name ("$driveLetterName" -Replace ":") -Force -ErrorAction Continue 
 	}	
 }
 
