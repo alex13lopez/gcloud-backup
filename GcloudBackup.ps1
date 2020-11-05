@@ -235,7 +235,7 @@ function manageShare([string]$action) {
 				# We warn the user in the log that he might want to change the drive letter in the conf
 				Write-Output "Drive letter: $driveLetter is not available. You might want to change the drive letter in GcloudConf.ps1 to ${newDriveLetter}:" >> $logFile
 
-				# And we change the drive letter to the next available
+				# And we change the drive letter to the next available for the current script execution
 				$driveLetter = $newDriveLetter	
 			}
 		}
