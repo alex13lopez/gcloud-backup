@@ -1,7 +1,7 @@
 # Name: Gcloud Backup
 # Author: Alex López <arendevel@gmail.com>
 # Contributor: Iván Blasco
-# Version: 10.1.3b
+# Version: 10.2.0b
 
 ########## Var & parms declaration #####################################################
 param(
@@ -203,13 +203,16 @@ function manageShare([string]$action) {
 
 	if ($action -eq 'mount') {
 		
-		Write-Debug "sharePath: $sharePath"
+		Write-Debug "manageShare(): sharePath: $sharePath"
+		$driveLetterRoot = (Get-PSDrive -PSProvider FileSystem -Name ("X:" -Replace ":")).DisplayRoot
 
-		if (-not (Test-Path -Path "$sharePath")) {
+		Write-Debug "manageShare(): driveLetterRoot: $driveLetterRoot"
+
+		if (-not ($driveLetterRoot -eq "$sharePath"))  {
 			
 			$newDriveLetter = ""
 
-			Write-Debug "driveLetter: $driveLetter"
+			Write-Debug "manageShare(): driveLetter: $driveLetter"
 
 			if (-not (Test-Path -Path "$driveLetter")) {
 				# If the drive letter we want to use it's not being used already, we mount it
@@ -219,24 +222,23 @@ function manageShare([string]$action) {
 				$creds = getCredentials "$shareUsrFile" "$sharePwFile"
 
 				$driveLetterName = $driveLetter -Replace ":" # We need to remove the semicolon for New-PSDrive
-				New-PSDrive -Name $driveLetterName -PSProvider FileSystem -Root "$sharePath" -Persist:$permanentShare -Scope [Global]  -Credential $creds > $null			
+				New-PSDrive -Name $driveLetterName -PSProvider FileSystem -Root "$sharePath" -Persist:$permanentShare -Scope Global  -Credential $creds > $null	
 			}
 			else {
 				# We find next available drive letter and we mount it
 				# 68 - 90 are the Unicode represented characters of letters D..Z
 				$newDriveLetter = (68..90 | ForEach-Object {$L=[char]$_; if ((Get-PSDrive -PSProvider FileSystem).Name -notContains $L) {$L}})[0]
 				
-				Write-Debug "Drive letter is being used already, next available drive letter is: $newDriveLetter"
+				Write-Debug "Drive letter is being used already, next available drive letter is: ${newDriveLetter}:"
 
 				$creds = getCredentials "$shareUsrFile" "$sharePwFile"
 				
-				New-PSDrive -Name $newDriveLetter -PSProvider FileSystem -Root "$sharePath" -Persist:$permanentShare -Scope [Global] -Credential $creds > $null
+				New-PSDrive -Name $newDriveLetter -PSProvider FileSystem -Root "$sharePath" -Persist:$permanentShare -Scope Global -Credential $creds > $null
 
 				# We warn the user in the log that he might want to change the drive letter in the conf
 				Write-Output "Drive letter: $driveLetter is not available. You might want to change the drive letter in GcloudConf.ps1 to ${newDriveLetter}:" >> $logFile
 
-				# And we change the drive letter to the next available for the current script execution
-				$driveLetter = $newDriveLetter	
+				$global:driveLetter = $newDriveLetter + ":"
 			}
 		}
 	}
@@ -319,11 +321,13 @@ function removeOldBackups() {
 						# Moved dryRun down because cygWinCommand() handles $dryRun differently						
 						if($useCygWin) # We run the CygWin implementation
 						{
-							cygWinCommand("gsutil -m -q rm -a ""$file""")
+							Write-Debug "Removing with CygWin: $filePath"
+							cygWinCommand("gsutil -m -q rm -a ""$filePath""")
 						}
 						elseif (!$dryRun) 							
 						{
-							gsutil -m -q rm -a "$file" # -m makes the operation multithreaded. -q causes gsutil to be quiet, basically: No progress reporting, only errors
+							Write-Debug "Removing without CygWin: $filePath"
+							gsutil -m -q rm -a "$filePath" # -m makes the operation multithreaded. -q causes gsutil to be quiet, basically: No progress reporting, only errors
 						}					
 					}											
 				}				
@@ -358,10 +362,12 @@ function doUpload() {
 		$timeNow = getTime
 		Write-Output ("Uploading Backups to Gcloud... Job started at " + $timeNow)
 
-		foreach ($path in $backupPaths) {
+		foreach ($backupPath in $backupPaths) {
 			
-			$dirName = $path -replace '.*\\'
+			$dirName = $backupPath -replace '.*\\'
 			
+			$fullPath = "$driveLetter\$backupPath"
+
 			$timeNow = getTime
 			Write-Output ("Uploading $dirName to Gcloud... Job started at " + $timeNow)
 			
@@ -369,19 +375,27 @@ function doUpload() {
 						
 			createFolder "$logDir\$dateLogs"
 			
-			if (!$dryRun) {
-				# Changed back to rsync because copy does copy all the files whether they are changed or not
-				# But now, -d option is skipped since we deal with the old backup files manually with removeOldBackups
-				
-				if($useCygWin) # We run the CygWin implementation
-				{
-					$cygWinPath = $path -replace "\\","/" # Convert to UNIX path
-					cygWinCommand("gsutil -m -q rsync -r  `'$cygWinPath`' `'$serverPath/$dirName`'")
+			Write-Debug "doUpload(): fullPath: $fullPath"
+
+			if (Test-Path $backupPath) {
+
+				if (!$dryRun) {
+					# Changed back to rsync because copy does copy all the files whether they are changed or not
+					# But now, -d option is skipped since we deal with the old backup files manually with removeOldBackups
+					
+					if($useCygWin) # We run the CygWin implementation
+					{
+						$cygWinPath = $fullPath -replace "\\","/" # Convert to UNIX path
+						cygWinCommand("gsutil -m -q rsync -r  `'$cygWinPath`' `'$serverPath/$dirName`'")
+					}
+					else 
+					{
+						gsutil -m -q rsync -r "$fullPath" "$serverPath/$dirName"
+					}
 				}
-				else 
-				{
-					gsutil -m -q rsync -r "$path" "$serverPath/$dirName"
-				}
+			}
+			else {
+				Write-Output "Cannot find backup path '$backupPath'" >> $errorLog
 			}
 			
 			$timeNow = getTime
