@@ -2,7 +2,6 @@
 # Author: Alex López <arendevel@gmail.com>
 # Contributor: Iván Blasco
 # Version: 10.1.3b
-# Veeam Backup And Replication V: 10+
 
 ########## Var & parms declaration #####################################################
 param(
