@@ -31,7 +31,7 @@ $useCygWin      = $false # Set to true if you wish to use the CygWin implementat
 # (Since the instructions have links and such, some paranoid Anti-Virus like Kaspersky Endpoint detected it as Obfuscated Code)
 
 # Mount share options
-$mountShare       = $true
+$mountShare       = $false
 $sharePath        = '' # Full path to the share, including the directory (e.g.: \\server\SharedDirectory)
 $shareUsrFile     = Join-Path -Path $credDir -ChildPath 'ShareUsername'
 $sharePwFile      = Join-Path -Path $credDir -ChildPath 'SharePassword'
