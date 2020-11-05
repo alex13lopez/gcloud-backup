@@ -1,7 +1,7 @@
 # Name: Gcloud Backup
 # Author: Alex López <arendevel@gmail.com>
 # Contributor: Iván Blasco
-# Version: 9.7.3.1b
+# Version: 10.0.1a
 # Veeam Backup And Replication V: 10+
 
 ########## Var & parms declaration #####################################################
@@ -24,12 +24,12 @@ try {
 		. $confFile
 	}
 	else {
-		Write-Host 'Configuration file not found, please reinstall!' -fore red -back black
+		Write-Host 'Configuration file not found, please reinstall!' -ForegroundColor Red -BackgroundColor Black
 		exit 1
 	}
 }
 catch {
-	Write-Host "Please, check your configuration file, there's something incorrect in it. " -fore red -back black
+	Write-Host "Please, check your configuration file, there's something incorrect in it. " -ForegroundColor Red -BackgroundColor Black
 	exit 1
 }
 #########################################################################################
@@ -54,48 +54,105 @@ function createFolder($path) {
 	
 }
 
-function chkCredentials() {
+function chkCredentials($usrFile, $pwFile) {
 	return (Test-Path -Path $usrFile) -and (Test-Path -Path $pwFile)
 }
 
-function genCredentials() {
+function genCredentials($usrFile, $pwFile) {
 	
 	createFolder $credDir
 	
-	$creds = (Get-Credential)
+	if ([string]::IsNullOrEmpty($usrFile) -or [string]::IsNullOrEmpty($pwFile)){
+		$mailCred =  [ChoiceDescription]::new('&Mail', 'Credential Type: Mail')
+		$shareCred = [ChoiceDescription]::new('&Share', 'Credential Type: Share')
+
+		$options = [ChoiceDescription[]]($mailCred, $shareCred)
+		$result = $host.UI.PromptForChoice("Credential Types", "What type of credential do you wish to create?", $options, 0)
+
+		switch ($result) {
+			0 { genCredentials "$mailUsrFile" "$mailPwFile"}
+			1 { genCredentials "$shareUsrFile" "$sharePwFile" }
+			Default {
+				Write-Host "Invalid option, try again." -ForegroundColor Red -BackgroundColor Black 
+				genCredentials
+			}
+		}
+	}
+	else {
+		$creds = (Get-Credential)
 	
-	$creds.UserName | Out-File $usrFile
-	$creds.Password | ConvertFrom-SecureString | Out-File $pwFile
+		$creds.UserName | Out-File $usrFile
+		$creds.Password | ConvertFrom-SecureString | Out-File $pwFile
+	}
 	
-	Write-Host "Credentials generated succesfully!" -fore green -back black
+	
+	Write-Host "Credentials generated succesfully!" -ForegroundColor green -BackgroundColor black
 }
 
-function getCredentials() {
-	return  New-Object -TypeName System.Management.Automation.PSCredential -ArgumentList (Get-Content $usrFile), (Get-Content $pwFile | ConvertTo-SecureString)
-}
-
-function mailLogs($jobType, $server, $startedTime, $endTime, $attachment) {
-    
-    $chkCredentials = chkCredentials	
+function getCredentials($usrFile, $pwFile) {
+	$chkCredentials = chkCredentials "$usrFile" "$pwFile"
 
 	if (!$chkCredentials){
 		
 		if ($unattended) {
-			Write-Output "Credentials not found, please run this script again in interactive mode (No unattended flag activated) to generate them." 1> $credErrorLog
+			Write-Output "Credentials ('$usrFile', '$pwFile') not found, please run this script again in interactive mode (No unattended flag activated) to generate them." 1> $credErrorLog
 			Write-Output "Notice that whilst you do NOT delete '$credDir' your credentials will be safely secured with Windows Data Protection API (DPAPI) which can only be used in this machine." 1>> $credErrorLog
 			return $false # Creds not found and running in 'unattended mode' so we cannot send the email
 		}
 		else {
-			Write-Host "Credentials not found, please introduce your login information." -fore yellow -back black
+			Write-Host "Credentials ('$usrFile', '$pwFile') not found, please introduce your login information." -ForegroundColor Yellow -BackgroundColor Black
 			Write-Host "Notice that whilst you do NOT delete '$credDir' your credentials will be safely secured with Windows Data Protection API (DPAPI) which can only be used in this machine." -fore blue -back black
-			genCredentials
+			genCredentials "$usrFile" "$pwFile"
 		}				
 		
 		
 	}
+	return  New-Object -TypeName System.Management.Automation.PSCredential -ArgumentList (Get-Content $usrFile), (Get-Content $pwFile | ConvertTo-SecureString)
+}
+
+function mountSharedDrive() {
+
+	if (-not (Test-Path -Path "$sharePath")) {
+		
+		$newDriveLeter = ""
+
+		if (-not (Test-Path -Path "$driveLetter")) {
+			# If the drive letter we want to use it's not being used already, we mount it
+			$creds = getCredentials "$shareUsrFile" "$sharePwFile"
+
+			$net = new-object -ComObject WScript.Network
+			$net.MapNetworkDrive("$driveLetter","$sharePath",$false,$creds.Username,$creds.Password)
+		}
+		else {
+			# We find next available drive letter and we mount it
+			# 68 - 90 are the Unicode represented characters of letters D..Z
+			$newDriveLeter = (68..90 | ForEach-Object {$L=[char]$_; if ((Get-PSDrive -PSProvider FileSystem).Name -notContains $L) {$L}})[0]
+			$newDriveLeter = $newDriveLeter + ':' # We add the trailing ":" to the letter that
+
+			$creds = getCredentials "$shareUsrFile" "$sharePwFile"
+
+			$net = new-object -ComObject WScript.Network
+			$net.MapNetworkDrive("$newDriveLeter","$sharePath",$false,$creds.Username,$creds.Password)
+
+			# We warn the user in the log that he might want to change the drive letter in the conf
+			Write-Host "Drive letter: $driveLetter is not available. You might want to change the drive letter in GcloudConf.ps1 to: ${newDriveLetter}."
+
+			# And we change de drive letter to the next available
+			$driveLetter = $newDriveLeter
+			
+		}
+	}	
+
 	
+}
+
+function mailLogs($jobType, $server, $startedTime, $endTime, $attachment) {
+    
 	# Mail Setup
-	$cred = getCredentials
+	$cred = getCredentials "$mailUsrFile" "$mailPwFile"
+
+	if ($cred -eq $false) { return $false}
+
 	$EmailTo = $mailTo
 	$EmailFrom = $cred.UserName
 	
@@ -160,23 +217,69 @@ function cygWinCommand($command, $ForceRun) {
 
 	if ($ForceRun -eq $null) { $ForceRun = $false }
 
-	if (Test-Path $CygWinBash -PathType Leaf)
+	if (Test-Path $cygWinBash -PathType Leaf)
 	{
 		if ($dryRun) # If DryRun we say what we're going to do
 		{
-			& $CygWinBash --login -c "echo Running in CygWin: $command" | Out-Host #TestRun command
+			& $cygWinBash --login -c "echo Running in CygWin: $command" | Out-Host #TestRun command
 		}
 		
 		if ($ForceRun -or !$dryRun) # If we're running in DryRun we don't run the command unless we force it
 		{
-			& $CygWinBash --login -c "$CygWinSDKPath/$command" #Run command
+			& $cygWinBash --login -c "$cygWinSDKPath/$command" #Run command
 		}
 	}
 	else 
 	{
-		Write-Output "CygWin bash file doesn't exist, incorrect path"
+		Write-Output "CygWin bash file doesn't exist, incorrect path."
 	}
 	
+}
+
+function manageShare([string]$action) {
+
+	if ($action -eq 'mount') {
+		
+		if (-not (Test-Path -Path "$sharePath")) {
+			
+			$newDriveLetter = ""
+
+			if (-not (Test-Path -Path "$driveLetter")) {
+				# If the drive letter we want to use it's not being used already, we mount it
+
+				Write-Debug "Drive letter is not being used."
+
+				$creds = getCredentials "$shareUsrFile" "$sharePwFile"
+
+				$net = New-Object -ComObject WScript.Network
+				$net.MapNetworkDrive("$driveLetter", "$sharePath", $false, "$creds.Username", "$creds.Password")
+			}
+			else {
+				# We find next available drive letter and we mount it
+				# 68 - 90 are the Unicode represented characters of letters D..Z
+				$newDriveLetter = (68..90 | ForEach-Object {$L=[char]$_; if ((Get-PSDrive -PSProvider FileSystem).Name -notContains $L) {$L}})[0]
+				$newDriveLetter = $newDriveLetter + ':' # We add the trailing ":" to the letter so it is a valid drive letter recognised by MapNetWorkDrive()
+				
+				Write-Debug "Drive letter is being used already, next available drive letter is: $newDriveLetter"
+
+				$creds = getCredentials "$shareUsrFile" "$sharePwFile"
+
+				$net = New-Object -ComObject WScript.Network
+				$net.MapNetworkDrive("$newDriveLetter", "$sharePath", $false, "$creds.Username", "$creds.Password")
+
+				# We warn the user in the log that he might want to change the drive letter in the conf
+				Write-Host "Drive letter: $driveLetter is not available. You might want to change the drive letter in GcloudConf.ps1 to: ${newDriveLetter}."
+
+				# And we change the drive letter to the next available
+				$driveLetter = $newDriveLetter	
+			}
+		}
+	}
+	elseif ($action -eq 'unmount') {
+		Write-Debug "Drive letter: $driveLetter"
+		Remove-PSDrive -PSProvider FileSystem -Name ("$driveLetter" -Replace ":") -ErrorAction Continue
+		Net Use $driveLetter /delete # Sometimes Remove-PSDrive won't work for network drives, so we use 'Net Use' for those cases
+	}	
 }
 
 function autoClean() {
@@ -279,6 +382,9 @@ function removeOldBackups() {
 
 function doUpload() {
 
+	# If it is a shared path, we make sure it is mounted otherwise the job will fail
+	if ($mountShare) { manageShare "mount" }
+
 	# We wrap all the code so we can send all the stdout and stderr to files in a single line
 	&{
 		if ($dryRun) {
@@ -322,9 +428,11 @@ function doUpload() {
 			}
 			
 		}
-
 		$timeNow = getTime
 		Write-Output ("Uploading Backups to Gcloud... Job finished at " + $timeNow)
+
+		# We unmount the temporary mounted drive
+		manageShare "unmount"
 
 	}  2>> $errorLog 1>> $logFile
 	
