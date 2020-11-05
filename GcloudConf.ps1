@@ -1,4 +1,4 @@
-# Conf File Version: 1.3.2.1
+# Conf File Version: 1.3.2.2
 
 # General options	
 $dateLogs          = Get-Date -UFormat '%Y%m%d' # A more powershelly way of doing this is: '{0:yyyyMMdd}' -f (Get-Date)  
@@ -35,3 +35,4 @@ $mountShare       = $false
 $sharePath        = '' # Full path to the share, including the directory (e.g.: \\server\SharedDirectory)
 $shareUsrFile     = Join-Path -Path $credDir -ChildPath 'ShareUsername'
 $sharePwFile      = Join-Path -Path $credDir -ChildPath 'SharePassword'
+$permanentShare   = $false # Default: $false. Change to true to permanently mount the share as a Drive

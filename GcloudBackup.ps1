@@ -1,7 +1,7 @@
 # Name: Gcloud Backup
 # Author: Alex López <arendevel@gmail.com>
 # Contributor: Iván Blasco
-# Version: 10.1.2b
+# Version: 10.1.3b
 # Veeam Backup And Replication V: 10+
 
 ########## Var & parms declaration #####################################################
@@ -220,7 +220,7 @@ function manageShare([string]$action) {
 				$creds = getCredentials "$shareUsrFile" "$sharePwFile"
 
 				$driveLetterName = $driveLetter -Replace ":" # We need to remove the semicolon for New-PSDrive
-				New-PSDrive -Name $driveLetterName -PSProvider FileSystem -Root "$sharePath" -Persist:$false -Credential $creds	> $null			
+				New-PSDrive -Name $driveLetterName -PSProvider FileSystem -Root "$sharePath" -Persist:$permanentShare -Scope [Global]  -Credential $creds > $null			
 			}
 			else {
 				# We find next available drive letter and we mount it
@@ -231,7 +231,7 @@ function manageShare([string]$action) {
 
 				$creds = getCredentials "$shareUsrFile" "$sharePwFile"
 				
-				New-PSDrive -Name $newDriveLetter -PSProvider FileSystem -Root "$sharePath" -Persist:$false -Credential $creds > $null
+				New-PSDrive -Name $newDriveLetter -PSProvider FileSystem -Root "$sharePath" -Persist:$permanentShare -Scope [Global] -Credential $creds > $null
 
 				# We warn the user in the log that he might want to change the drive letter in the conf
 				Write-Output "Drive letter: $driveLetter is not available. You might want to change the drive letter in GcloudConf.ps1 to ${newDriveLetter}:" >> $logFile
