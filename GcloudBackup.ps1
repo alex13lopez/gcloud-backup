@@ -1,7 +1,7 @@
 # Name: Gcloud Backup
 # Author: Alex López <arendevel@gmail.com>
 # Contributor: Iván Blasco
-# Version: 10.2.0b
+# Version: 10.2.1b
 
 ########## Var & parms declaration #####################################################
 param(
@@ -244,7 +244,7 @@ function manageShare([string]$action) {
 	}
 	elseif ($action -eq 'unmount') {
 		$driveLetterName = $driveLetter -Replace ":" # We need to remove the semicolon for Remove-PSDrive
-		Remove-PSDrive -PSProvider FileSystem -Name ("$driveLetterName" -Replace ":") -Force -ErrorAction Continue 
+		Remove-PSDrive -PSProvider FileSystem -Name "$driveLetterName" -Force -ErrorAction Continue 
 	}	
 }
 
@@ -377,7 +377,7 @@ function doUpload() {
 			
 			Write-Debug "doUpload(): fullPath: $fullPath"
 
-			if (Test-Path $backupPath) {
+			if (Test-Path $fullPath) {
 
 				if (!$dryRun) {
 					# Changed back to rsync because copy does copy all the files whether they are changed or not
@@ -389,15 +389,16 @@ function doUpload() {
 						cygWinCommand("gsutil -m -q rsync -r  `'$cygWinPath`' `'$serverPath/$dirName`'")
 					}
 					else 
-					{
+					{						
 						gsutil -m -q rsync -r "$fullPath" "$serverPath/$dirName"
 					}
 				}
 			}
 			else {
-				Write-Output "Cannot find backup path '$backupPath'" >> $errorLog
+				Write-Error -Message "Cannot find backup path '$fullPath'"	
 			}
 			
+
 			$timeNow = getTime
 			Write-Output ("Uploading $dirName to Gcloud... Job finished at " + $timeNow)
 			
@@ -410,7 +411,10 @@ function doUpload() {
 		Write-Output ("Uploading Backups to Gcloud... Job finished at " + $timeNow)
 
 		# We unmount the temporary mounted drive
-		manageShare "unmount"
+		if (-not ($permanentShare)) {
+			manageShare "unmount"
+		}
+		
 
 	}  2>> $errorLog 1>> $logFile
 	
