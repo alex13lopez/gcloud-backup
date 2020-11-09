@@ -1,7 +1,7 @@
 # Name: Gcloud Backup
 # Author: Alex López <arendevel@gmail.com>
 # Contributor: Iván Blasco
-# Version: 10.4.1b
+# Version: 10.4.2
 
 ########## Var & parms declaration #####################################################
 param(
@@ -27,7 +27,7 @@ try {
 	}
 }
 catch {
-	Write-Host "Please, check your configuration file, there's something incorrect in it. " -ForegroundColor Red -BackgroundColor Black
+	Write-Host "Please, check your configuration file ('$confFile'), there's something incorrect in it. " -ForegroundColor Red -BackgroundColor Black
 	exit 1
 }
 #########################################################################################
