@@ -1,7 +1,7 @@
 # Name: Gcloud Backup
 # Author: Alex López <arendevel@gmail.com>
 # Contributor: Iván Blasco
-# Version: 10.3.0b
+# Version: 10.3.1b
 
 ########## Var & parms declaration #####################################################
 param(
@@ -203,7 +203,7 @@ function manageShare([string]$action) {
 	if ($action -eq 'mount') {
 		
 		Write-Debug "manageShare(): sharePath: $sharePath"
-		$driveLetterRoot = (Get-PSDrive -PSProvider FileSystem -Name ("X:" -Replace ":")).DisplayRoot
+		$driveLetterRoot = (Get-PSDrive -PSProvider FileSystem -Name ("$driveLetter" -Replace ":")).DisplayRoot
 
 		Write-Debug "manageShare(): driveLetterRoot: $driveLetterRoot"
 
@@ -221,7 +221,7 @@ function manageShare([string]$action) {
 				$creds = getCredentials "$shareUsrFile" "$sharePwFile"
 
 				$driveLetterName = $driveLetter -Replace ":" # We need to remove the semicolon for New-PSDrive
-				New-PSDrive -Name $driveLetterName -PSProvider FileSystem -Root "$sharePath" -Persist:$permanentShare -Scope Global  -Credential $creds > $null	
+				New-PSDrive -Name $driveLetterName -PSProvider FileSystem -Root "$sharePath" -Persist -Scope Global  -Credential $creds > $null	
 			}
 			else {
 				# We find next available drive letter and we mount it
@@ -232,7 +232,7 @@ function manageShare([string]$action) {
 
 				$creds = getCredentials "$shareUsrFile" "$sharePwFile"
 				
-				New-PSDrive -Name $newDriveLetter -PSProvider FileSystem -Root "$sharePath" -Persist:$permanentShare -Scope Global -Credential $creds > $null
+				New-PSDrive -Name $newDriveLetter -PSProvider FileSystem -Root "$sharePath" -Persist -Scope Global -Credential $creds > $null
 
 				# We warn the user in the log that he might want to change the drive letter in the conf
 				Write-Output "Drive letter: $driveLetter is not available. You might want to change the drive letter in GcloudConf.ps1 to ${newDriveLetter}:" >> $logFile

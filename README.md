@@ -29,6 +29,7 @@ This project provides an easy-to-setup and ready-to-deploy script to sync backup
   * -dryRun: Performs a test of the action you selected.
   * -unattended: When the script needs user input won't wait for it when this flag is on, so the script will still run. But the warning/error will be logged in the log file. (This might happen for example, if you enabled mailing feature but haven't generated the credentials yet. If you don't -unattended, the script will understand you're attending to the script's behaviour and ask for credentials, instead, if you --unattended the script will log missing credentials to the log and disable temporarily the mailing feature.)
   * -genCreds: Script runs only to generate the credentials you want for the mailing feature.
+  * -confFile: You may specify a different config file in case you're testing something out or in case you'd like to have different configurations for different servers.
 
 # HOW TO USE CYGWIN
 The CygWin implementation must have the Gcloud SDK configured, plus all the dependencies the SDK has, how to prepare CygWin to work properly:
