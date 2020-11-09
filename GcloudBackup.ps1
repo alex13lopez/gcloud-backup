@@ -1,7 +1,7 @@
 # Name: Gcloud Backup
 # Author: Alex López <arendevel@gmail.com>
 # Contributor: Iván Blasco
-# Version: 10.3.1b
+# Version: 10.4.1b
 
 ########## Var & parms declaration #####################################################
 param(
@@ -283,6 +283,9 @@ function removeOldBackups() {
 		$files = @(gsutil -m ls -lR "$serverPath" | Select-String -Pattern "\..*$" | Select-String -Pattern "TOTAL" -NotMatch)
 	}
 	
+	# We filter the results to only remove the backups we're currently processing with the current $confFile we're using
+	$files = $files | Where-Object {[string]$file = $_; @($backupPaths | Where-Object {$file.Contains($_)}).Count -gt 0}
+
 	if (! [string]::IsNullOrEmpty($files)) { 
 	
 		$timeNow = getTime
