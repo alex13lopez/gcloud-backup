@@ -1,7 +1,7 @@
 # Name: Gcloud Backup
 # Author: Alex López <arendevel@gmail.com>
 # Contributor: Iván Blasco
-# Version: 10.4.2
+# Version: 10.4.3
 
 ########## Var & parms declaration #####################################################
 param(
@@ -177,7 +177,7 @@ function getFileName([string]$file, [string]$nameLimitator) {
 
 function cygWinCommand($command, $ForceRun) {
 
-	if ($ForceRun -eq $null) { $ForceRun = $false }
+	if ($null -eq $ForceRun) { $ForceRun = $false }
 
 	if (Test-Path $cygWinBash -PathType Leaf)
 	{
