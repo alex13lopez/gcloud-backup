@@ -1,22 +1,20 @@
 # Name: Gcloud Backup
 # Author: Alex López <arendevel@gmail.com>
 # Contributor: Iván Blasco
-# Version: 9.7.3.1b
-# Veeam Backup And Replication V: 10+
+# Version: 10.4.2
 
 ########## Var & parms declaration #####################################################
 param(
-    [Parameter(Mandatory = $false)][switch]$all         = $false,
-	[Parameter(Mandatory = $false)][switch]$clean		= $false, 
-	[Parameter(Mandatory = $false)][switch]$removeOld	= $false,
-	[Parameter(Mandatory = $false)][switch]$dryRun		= $false, # This will cause script to run without making any changes
-	[Parameter(Mandatory = $false)][switch]$unattended	= $false, # Turn this flag on if script is going tu run unattended
-	[Parameter(Mandatory = $false)][switch]$genCreds 	= $false  # Generate credentials only
+    [Parameter(Mandatory = $false)][switch]$all         				= $false,
+	[Parameter(Mandatory = $false)][switch]$clean						= $false, 
+	[Parameter(Mandatory = $false)][switch]$removeOld					= $false,
+	[Parameter(Mandatory = $false)][switch]$dryRun						= $false,  				   # This will cause script to run without making any changes
+	[Parameter(Mandatory = $false)][switch]$unattended					= $false,  				   # Turn this flag on if script is going tu run unattended
+	[Parameter(Mandatory = $false)][switch]$genCreds 					= $false,  			 	   # Generate credentials only
+	[Parameter(Mandatory = $false)][System.IO.FileInfo]$confFile   		= '.\GcloudConf.ps1'       # We may indicate an alternate conf file
 	)
 	
 Push-Location (Split-Path -Path $MyInvocation.MyCommand.Definition -Parent)
-
-$confFile = ".\GcloudConf.ps1"
 
 # Conf loading
 try {
@@ -24,12 +22,12 @@ try {
 		. $confFile
 	}
 	else {
-		Write-Host 'Configuration file not found, please reinstall!' -fore red -back black
+		Write-Host 'Configuration file not found, please reinstall!' -ForegroundColor Red -BackgroundColor Black
 		exit 1
 	}
 }
 catch {
-	Write-Host "Please, check your configuration file, there's something incorrect in it. " -fore red -back black
+	Write-Host "Please, check your configuration file ('$confFile'), there's something incorrect in it. " -ForegroundColor Red -BackgroundColor Black
 	exit 1
 }
 #########################################################################################
@@ -54,48 +52,69 @@ function createFolder($path) {
 	
 }
 
-function chkCredentials() {
+function chkCredentials($usrFile, $pwFile) {
 	return (Test-Path -Path $usrFile) -and (Test-Path -Path $pwFile)
 }
 
-function genCredentials() {
+function genCredentials($usrFile, $pwFile) {
 	
 	createFolder $credDir
 	
-	$creds = (Get-Credential)
+	if ([string]::IsNullOrEmpty($usrFile) -or [string]::IsNullOrEmpty($pwFile)){
+		$mailCred =  [ChoiceDescription]::new('&Mail', 'Credential Type: Mail')
+		$shareCred = [ChoiceDescription]::new('&Share', 'Credential Type: Share')
+
+		$options = [ChoiceDescription[]]($mailCred, $shareCred)
+		$result = $host.UI.PromptForChoice("Credential Types", "What type of credential do you wish to create?", $options, 0)
+
+		switch ($result) {
+			0 { genCredentials "$mailUsrFile" "$mailPwFile"}
+			1 { genCredentials "$shareUsrFile" "$sharePwFile" }
+			Default {
+				Write-Host "Invalid option, try again." -ForegroundColor Red -BackgroundColor Black 
+				genCredentials
+			}
+		}
+	}
+	else {
+		$creds = (Get-Credential)
 	
-	$creds.UserName | Out-File $usrFile
-	$creds.Password | ConvertFrom-SecureString | Out-File $pwFile
+		$creds.UserName | Out-File $usrFile
+		$creds.Password | ConvertFrom-SecureString | Out-File $pwFile
+	}
 	
-	Write-Host "Credentials generated succesfully!" -fore green -back black
+	
+	Write-Host "Credentials generated succesfully!" -ForegroundColor green -BackgroundColor black
 }
 
-function getCredentials() {
+function getCredentials($usrFile, $pwFile) {
+	$chkCredentials = chkCredentials "$usrFile" "$pwFile"
+
+	if (!$chkCredentials){
+		
+		if ($unattended) {
+			Write-Output "Credentials ('$usrFile', '$pwFile') not found, please run this script again in interactive mode (No unattended flag activated) to generate them." 1> $credErrorLog
+			Write-Output "Notice that whilst you do NOT delete '$credDir' your credentials will be safely secured with Windows Data Protection API (DPAPI) which can only be used in this machine." 1>> $credErrorLog
+			return $false # Creds not found and running in 'unattended mode' so we cannot send the email
+		}
+		else {
+			Write-Host "Credentials ('$usrFile', '$pwFile') not found, please introduce your login information." -ForegroundColor Yellow -BackgroundColor Black
+			Write-Host "Notice that whilst you do NOT delete '$credDir' your credentials will be safely secured with Windows Data Protection API (DPAPI) which can only be used in this machine." -fore blue -back black
+			genCredentials "$usrFile" "$pwFile"
+		}				
+		
+		
+	}
 	return  New-Object -TypeName System.Management.Automation.PSCredential -ArgumentList (Get-Content $usrFile), (Get-Content $pwFile | ConvertTo-SecureString)
 }
 
 function mailLogs($jobType, $server, $startedTime, $endTime, $attachment) {
     
-    $chkCredentials = chkCredentials	
-
-	if (!$chkCredentials){
-		
-		if ($unattended) {
-			Write-Output "Credentials not found, please run this script again in interactive mode (No unattended flag activated) to generate them." 1> $credErrorLog
-			Write-Output "Notice that whilst you do NOT delete '$credDir' your credentials will be safely secured with Windows Data Protection API (DPAPI) which can only be used in this machine." 1>> $credErrorLog
-			return $false # Creds not found and running in 'unattended mode' so we cannot send the email
-		}
-		else {
-			Write-Host "Credentials not found, please introduce your login information." -fore yellow -back black
-			Write-Host "Notice that whilst you do NOT delete '$credDir' your credentials will be safely secured with Windows Data Protection API (DPAPI) which can only be used in this machine." -fore blue -back black
-			genCredentials
-		}				
-		
-		
-	}
-	
 	# Mail Setup
-	$cred = getCredentials
+	$cred = getCredentials "$mailUsrFile" "$mailPwFile"
+
+	if ($cred -eq $false) { return $false}
+
 	$EmailTo = $mailTo
 	$EmailFrom = $cred.UserName
 	
@@ -160,23 +179,72 @@ function cygWinCommand($command, $ForceRun) {
 
 	if ($ForceRun -eq $null) { $ForceRun = $false }
 
-	if (Test-Path $CygWinBash -PathType Leaf)
+	if (Test-Path $cygWinBash -PathType Leaf)
 	{
 		if ($dryRun) # If DryRun we say what we're going to do
 		{
-			& $CygWinBash --login -c "echo Running in CygWin: $command" | Out-Host #TestRun command
+			& $cygWinBash --login -c "echo Running in CygWin: $command" | Out-Host #TestRun command
 		}
 		
 		if ($ForceRun -or !$dryRun) # If we're running in DryRun we don't run the command unless we force it
 		{
-			& $CygWinBash --login -c "$CygWinSDKPath/$command" #Run command
+			& $cygWinBash --login -c "$cygWinSDKPath/$command" #Run command
 		}
 	}
 	else 
 	{
-		Write-Output "CygWin bash file doesn't exist, incorrect path"
+		Write-Output "CygWin bash file doesn't exist, incorrect path."
 	}
 	
+}
+
+function manageShare([string]$action) {
+
+	if ($action -eq 'mount') {
+		
+		Write-Debug "manageShare(): sharePath: $sharePath"
+		$driveLetterRoot = (Get-PSDrive -PSProvider FileSystem -Name ("$driveLetter" -Replace ":")).DisplayRoot
+
+		Write-Debug "manageShare(): driveLetterRoot: $driveLetterRoot"
+
+		if (-not ($driveLetterRoot -eq "$sharePath"))  {
+			
+			$newDriveLetter = ""
+
+			Write-Debug "manageShare(): driveLetter: $driveLetter"
+
+			if (-not (Test-Path -Path "$driveLetter")) {
+				# If the drive letter we want to use it's not being used already, we mount it
+
+				Write-Debug "Drive letter is not being used."
+
+				$creds = getCredentials "$shareUsrFile" "$sharePwFile"
+
+				$driveLetterName = $driveLetter -Replace ":" # We need to remove the semicolon for New-PSDrive
+				New-PSDrive -Name $driveLetterName -PSProvider FileSystem -Root "$sharePath" -Persist -Scope Global  -Credential $creds > $null	
+			}
+			else {
+				# We find next available drive letter and we mount it
+				# 68 - 90 are the Unicode represented characters of letters D..Z
+				$newDriveLetter = (68..90 | ForEach-Object {$L=[char]$_; if ((Get-PSDrive -PSProvider FileSystem).Name -notContains $L) {$L}})[0]
+				
+				Write-Debug "Drive letter is being used already, next available drive letter is: ${newDriveLetter}:"
+
+				$creds = getCredentials "$shareUsrFile" "$sharePwFile"
+				
+				New-PSDrive -Name $newDriveLetter -PSProvider FileSystem -Root "$sharePath" -Persist -Scope Global -Credential $creds > $null
+
+				# We warn the user in the log that he might want to change the drive letter in the conf
+				Write-Output "Drive letter: $driveLetter is not available. You might want to change the drive letter in GcloudConf.ps1 to ${newDriveLetter}:" >> $logFile
+
+				$global:driveLetter = $newDriveLetter + ":"
+			}
+		}
+	}
+	elseif ($action -eq 'unmount') {
+		$driveLetterName = $driveLetter -Replace ":" # We need to remove the semicolon for Remove-PSDrive
+		Remove-PSDrive -PSProvider FileSystem -Name "$driveLetterName" -Force -ErrorAction Continue 
+	}	
 }
 
 function autoClean() {
@@ -215,6 +283,9 @@ function removeOldBackups() {
 		$files = @(gsutil -m ls -lR "$serverPath" | Select-String -Pattern "\..*$" | Select-String -Pattern "TOTAL" -NotMatch)
 	}
 	
+	# We filter the results to only remove the backups we're currently processing with the current $confFile we're using
+	$files = $files | Where-Object {[string]$file = $_; @($backupPaths | Where-Object {$file.Contains($_)}).Count -gt 0}
+
 	if (! [string]::IsNullOrEmpty($files)) { 
 	
 		$timeNow = getTime
@@ -252,11 +323,13 @@ function removeOldBackups() {
 						# Moved dryRun down because cygWinCommand() handles $dryRun differently						
 						if($useCygWin) # We run the CygWin implementation
 						{
-							cygWinCommand("gsutil -m -q rm -a ""$file""")
+							Write-Debug "Removing with CygWin: $filePath"
+							cygWinCommand("gsutil -m -q rm -a ""$filePath""")
 						}
 						elseif (!$dryRun) 							
 						{
-							gsutil -m -q rm -a "$file" # -m makes the operation multithreaded. -q causes gsutil to be quiet, basically: No progress reporting, only errors
+							Write-Debug "Removing without CygWin: $filePath"
+							gsutil -m -q rm -a "$filePath" # -m makes the operation multithreaded. -q causes gsutil to be quiet, basically: No progress reporting, only errors
 						}					
 					}											
 				}				
@@ -279,6 +352,9 @@ function removeOldBackups() {
 
 function doUpload() {
 
+	# If it is a shared path, we make sure it is mounted otherwise the job will fail
+	if ($mountShare) { manageShare "mount" }
+
 	# We wrap all the code so we can send all the stdout and stderr to files in a single line
 	&{
 		if ($dryRun) {
@@ -288,10 +364,12 @@ function doUpload() {
 		$timeNow = getTime
 		Write-Output ("Uploading Backups to Gcloud... Job started at " + $timeNow)
 
-		foreach ($path in $backupPaths) {
+		foreach ($backupPath in $backupPaths) {
 			
-			$dirName = $path -replace '.*\\'
+			$dirName = $backupPath -replace '.*\\'
 			
+			$fullPath = "$driveLetter\$backupPath"
+
 			$timeNow = getTime
 			Write-Output ("Uploading $dirName to Gcloud... Job started at " + $timeNow)
 			
@@ -299,21 +377,30 @@ function doUpload() {
 						
 			createFolder "$logDir\$dateLogs"
 			
-			if (!$dryRun) {
-				# Changed back to rsync because copy does copy all the files whether they are changed or not
-				# But now, -d option is skipped since we deal with the old backup files manually with removeOldBackups
-				
-				if($useCygWin) # We run the CygWin implementation
-				{
-					$cygWinPath = $path -replace "\\","/" # Convert to UNIX path
-					cygWinCommand("gsutil -m -q rsync -r  `'$cygWinPath`' `'$serverPath/$dirName`'")
-				}
-				else 
-				{
-					gsutil -m -q rsync -r "$path" "$serverPath/$dirName"
+			Write-Debug "doUpload(): fullPath: $fullPath"
+
+			if (Test-Path $fullPath) {
+
+				if (!$dryRun) {
+					# Changed back to rsync because copy does copy all the files whether they are changed or not
+					# But now, -d option is skipped since we deal with the old backup files manually with removeOldBackups
+					
+					if($useCygWin) # We run the CygWin implementation
+					{
+						$cygWinPath = $fullPath -replace "\\","/" # Convert to UNIX path
+						cygWinCommand("gsutil -m -q rsync -r  `'$cygWinPath`' `'$serverPath/$dirName`'")
+					}
+					else 
+					{						
+						gsutil -m -q rsync -r "$fullPath" "$serverPath/$dirName"
+					}
 				}
 			}
+			else {
+				Write-Error -Message "Cannot find backup path '$fullPath'"	
+			}
 			
+
 			$timeNow = getTime
 			Write-Output ("Uploading $dirName to Gcloud... Job finished at " + $timeNow)
 			
@@ -322,9 +409,14 @@ function doUpload() {
 			}
 			
 		}
-
 		$timeNow = getTime
 		Write-Output ("Uploading Backups to Gcloud... Job finished at " + $timeNow)
+
+		# We unmount the temporary mounted drive
+		if (-not ($permanentShare)) {
+			manageShare "unmount"
+		}
+		
 
 	}  2>> $errorLog 1>> $logFile
 	

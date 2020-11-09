@@ -12,9 +12,11 @@ This project provides an easy-to-setup and ready-to-deploy script to sync backup
   * The script mails every time it uploads a folder, sends an email if any error ocurred and attaches the error logging file for further details and sends a log of what has been deleted when the option -removeOld it's provided.
 * **DryRun** Want to test out uploading or removing what you had already in your bucket, do not want to delete your cloud file's without checking if everything looks good? Try -dryRun so you can see what is going to be done without actually doing it. 
   * (**Important Note:** You actually "don't see anything" because everything goes to the log, even when -dryRun is enabled, because this script is intended to run -unattended.)
-* **CygWin (NEW)** feature thanks to @HieiOne that stops the Window's Google SDK from limiting your total speed aproximately at 4.5 MiB/s (real bs if you ask me...). So you may use CygWin to use the Linux's Google SDK that works nicely and smoothly as it should.
+* **CygWin** feature thanks to @HieiOne that stops the Window's Google SDK from limiting your total speed aproximately at 4.5 MiB/s (real bs if you ask me...). So you may use CygWin to use the Linux's Google SDK that works nicely and smoothly as it should.
+* **Mount Share (NEW)** feature enables you to mount the share internally within the script so to avoid windows scheduled tasks typical error of "Cannot find the device X:...".
 
 # FUTURE IDEAS
+* Write logs to Windows Event System
 * Port to C# .NET Core
 
 # PARAMETERS
@@ -27,6 +29,7 @@ This project provides an easy-to-setup and ready-to-deploy script to sync backup
   * -dryRun: Performs a test of the action you selected.
   * -unattended: When the script needs user input won't wait for it when this flag is on, so the script will still run. But the warning/error will be logged in the log file. (This might happen for example, if you enabled mailing feature but haven't generated the credentials yet. If you don't -unattended, the script will understand you're attending to the script's behaviour and ask for credentials, instead, if you --unattended the script will log missing credentials to the log and disable temporarily the mailing feature.)
   * -genCreds: Script runs only to generate the credentials you want for the mailing feature.
+  * -confFile: You may specify a different config file in case you're testing something out or in case you'd like to have different configurations for different servers.
 
 # HOW TO USE CYGWIN
 The CygWin implementation must have the Gcloud SDK configured, plus all the dependencies the SDK has, how to prepare CygWin to work properly:
