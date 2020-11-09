@@ -1,21 +1,20 @@
 # Name: Gcloud Backup
 # Author: Alex López <arendevel@gmail.com>
 # Contributor: Iván Blasco
-# Version: 10.2.1b
+# Version: 10.3.0b
 
 ########## Var & parms declaration #####################################################
 param(
-    [Parameter(Mandatory = $false)][switch]$all         = $false,
-	[Parameter(Mandatory = $false)][switch]$clean		= $false, 
-	[Parameter(Mandatory = $false)][switch]$removeOld	= $false,
-	[Parameter(Mandatory = $false)][switch]$dryRun		= $false, # This will cause script to run without making any changes
-	[Parameter(Mandatory = $false)][switch]$unattended	= $false, # Turn this flag on if script is going tu run unattended
-	[Parameter(Mandatory = $false)][switch]$genCreds 	= $false  # Generate credentials only
+    [Parameter(Mandatory = $false)][switch]$all         				= $false,
+	[Parameter(Mandatory = $false)][switch]$clean						= $false, 
+	[Parameter(Mandatory = $false)][switch]$removeOld					= $false,
+	[Parameter(Mandatory = $false)][switch]$dryRun						= $false,  				   # This will cause script to run without making any changes
+	[Parameter(Mandatory = $false)][switch]$unattended					= $false,  				   # Turn this flag on if script is going tu run unattended
+	[Parameter(Mandatory = $false)][switch]$genCreds 					= $false,  			 	   # Generate credentials only
+	[Parameter(Mandatory = $false)][System.IO.FileInfo]$confFile   		= '.\GcloudConf.ps1'       # We may indicate an alternate conf file
 	)
 	
 Push-Location (Split-Path -Path $MyInvocation.MyCommand.Definition -Parent)
-
-$confFile = ".\GcloudConf.ps1"
 
 # Conf loading
 try {
