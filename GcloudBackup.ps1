@@ -1,7 +1,7 @@
 # Name: Gcloud Backup
 # Author: Alex López <arendevel@gmail.com>
 # Contributor: Iván Blasco
-# Version: 10.5.0
+# Version: 10.5.1
 
 ########## Var & parms declaration #####################################################
 param(
@@ -38,7 +38,7 @@ try {
 
 	if ($backupPaths.Count -eq 0) {
 		$confError = $true
-		Write-Host "Please, check your configuration file ('$confFile'). The backupPaths var must contain some path!" -ForegroundColor Red -BackgroundColor Black
+		Write-Host "Please, check your configuration file ('$confFile'). The backupPaths var must contain at least one path!" -ForegroundColor Red -BackgroundColor Black
 		Write-Output "Please, check your configuration file ('$confFile'). The backupPaths var must must contain at least one path!" >> $errorLog
 	}
 
@@ -60,7 +60,7 @@ catch {
 #########################################################################################
 
 # If we're debugging we set the $DebugPreference to continue to avoid Powershell asking annoyingly if we want to continue every time it finds a "Write-Debug"
-If ($PSBoundParameters['Debug']) {
+if ($PSBoundParameters['Debug']) {
     $DebugPreference = 'Continue'
 }
 
@@ -362,10 +362,11 @@ function removeOldBackups() {
 							gsutil -m -q rm -a "$filePath" # -m makes the operation multithreaded. -q causes gsutil to be quiet, basically: No progress reporting, only errors
 						}					
 					}
-					else {
+					
+					if ($PSBoundParameters['Debug']) {
 						$daysOld = $timeElapsed.Days
 						Write-Debug "The file: '$fileName' is $daysOld days old. So is newer than $daysToKeepBK days... Not going to wipe out!"
-					}											
+					}																						
 				}				
 			}
 			
