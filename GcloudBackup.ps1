@@ -126,7 +126,7 @@ function getCredentials($usrFile, $pwFile) {
 		}
 		else {
 			Write-Host "Credentials ('$usrFile', '$pwFile') not found, please introduce your login information." -ForegroundColor Yellow -BackgroundColor Black
-			Write-Host "Notice that whilst you do NOT delete '$credDir' your credentials will be safely secured with Windows Data Protection API (DPAPI) which can only be used in this machine." -ForegroundColor blue -BackgroundColor black
+			Write-Host "Notice that whilst you do NOT delete '$credDir' your credentials will be safely secured with Windows Data Protection API (DPAPI) which can only be used in this machine." -ForegroundColor Blue -BackgroundColor Black
 			genCredentials "$usrFile" "$pwFile"
 		}				
 		
