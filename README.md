@@ -16,6 +16,7 @@ This project provides an easy-to-setup and ready-to-deploy script to sync backup
 * **Mount Share (NEW)** feature enables you to mount the share internally within the script so to avoid windows scheduled tasks typical error of "Cannot find the device X:...".
 
 # FUTURE IDEAS
+* Easy management of saved credentials
 * Write logs to Windows Event System
 * Port to C# .NET Core
 
