@@ -2,7 +2,7 @@
 
 # General options	
 $global:dateLogs          = Get-Date -UFormat '%Y%m%d'
-$global:installDir		   = 'C:\Gcloud'
+$global:installDir		  = 'C:\Gcloud'
 $global:logDir            = Join-Path -Path $installDir -ChildPath 'Logs' # We use join path so we force powershell to expand $installDir
 $global:credDir           = Join-Path -Path $installDir -ChildPath 'Credentials'
 $global:logFile           = [System.IO.Path]::Combine($logDir, $dateLogs, "logFile.txt") # With Join-Path the var $dateLogs was not expanding so I changed it to [System.IO.Path]::Combine()
@@ -10,20 +10,20 @@ $global:errorLog          = [System.IO.Path]::Combine($logDir, $dateLogs, "error
 $global:cleanLog          = [System.IO.Path]::Combine($logDir, $dateLogs, "cleanLog.txt")
 $global:removeLogFile     = [System.IO.Path]::Combine($logDir, $dateLogs, "removeLogFile.txt")
 $global:removeErrorLog    = [System.IO.Path]::Combine($logDir, $dateLogs, "removeErrorLog.txt")
-$global:credErrorLog	   = [System.IO.Path]::Combine($logDir, $dateLogs, "credErrorLog.txt")
+$global:credErrorLog	  = [System.IO.Path]::Combine($logDir, $dateLogs, "credErrorLog.txt")
 $global:driveLetter       = '' # e.g.: D: - If it is already busy and mountShare feature enabled, the next letter available will be used
 
 # Comma-separated values without trailing backslashes and without the $driveLetter. 
 # So, for example, say your $driveLetter is Z: and inside Z: you have a backups folder and inside: Server1, Server2, you will have to put @('backups\Server1','backups\Server2')
 # Or if you directly have your backups inside Z:, you will then put @('Server1','Server2')
 # So the resulting path (after the concatenation in code later), will be $driveLetter\$backupPath, e.g.: 'Z:\Server1' or 'Z:\backups\Server1' depending on how you want to use it
-$global:backupPaths       = @()
+$global:backupPaths  = @()
 
 # Google cloud path to your bucket without trailing forwardslashes. E.g.: gs://yourbucket/backups
-$global:serverPath        = ''
+$global:serverPath   = ''
 
 # 8 days because in case it's Sunday we'll keep the last full backup made on last Saturday
-$global:daysToKeepBK      = 8
+$global:daysToKeepBK = 8
 
 # Mailing Options
 $global:mailUsrFile     = Join-Path -Path $credDir -ChildPath 'MailUsername'
