@@ -1,0 +1,5 @@
+Ver: 10.5.0 [10/11/2020]
+* Date clarification enhancement for removeOld()
+* Little code optimizations
+* Conf File full rework
+* Now we check whether the main vars are configured or not

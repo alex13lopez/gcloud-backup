@@ -1,7 +1,7 @@
 # Name: Gcloud Backup
 # Author: Alex López <arendevel@gmail.com>
 # Contributor: Iván Blasco
-# Version: 10.4.3
+# Version: 10.5.1
 
 ########## Var & parms declaration #####################################################
 param(
@@ -23,17 +23,44 @@ try {
 	}
 	else {
 		Write-Host 'Configuration file not found, please reinstall!' -ForegroundColor Red -BackgroundColor Black
+		Write-Output 'Configuration file not found, please reinstall!' >> $errorLog
 		exit 1
 	}
+
+	# Mandatory vars check
+	$confError = $false
+	
+	if ([string]::IsNullOrEmpty($driveLetter)) {
+		$confError = $true
+		Write-Host "Please, check your configuration file ('$confFile'). The driveLetter var must not be empty!" -ForegroundColor Red -BackgroundColor Black
+		Write-Output "Please, check your configuration file ('$confFile'). The driveLetter var must not be empty!" >> $errorLog
+	}
+
+	if ($backupPaths.Count -eq 0) {
+		$confError = $true
+		Write-Host "Please, check your configuration file ('$confFile'). The backupPaths var must contain at least one path!" -ForegroundColor Red -BackgroundColor Black
+		Write-Output "Please, check your configuration file ('$confFile'). The backupPaths var must must contain at least one path!" >> $errorLog
+	}
+
+	if ([string]::IsNullOrEmpty($serverPath)) { 
+		$confError = $true
+		Write-Host "Please, check your configuration file ('$confFile'). The serverPath var must not be empty!" -ForegroundColor Red -BackgroundColor Black
+		Write-Output "Please, check your configuration file ('$confFile'). The serverPath var must not be empty!" >> $errorLog
+	}
+
+	if ($confError) {exit 1}
+
+	#######################
 }
 catch {
 	Write-Host "Please, check your configuration file ('$confFile'), there's something incorrect in it. " -ForegroundColor Red -BackgroundColor Black
+	Write-Output "Please, check your configuration file ('$confFile'), there's something incorrect in it. " >> $errorLog
 	exit 1
 }
 #########################################################################################
 
 # If we're debugging we set the $DebugPreference to continue to avoid Powershell asking annoyingly if we want to continue every time it finds a "Write-Debug"
-If ($PSBoundParameters['Debug']) {
+if ($PSBoundParameters['Debug']) {
     $DebugPreference = 'Continue'
 }
 
@@ -99,7 +126,7 @@ function getCredentials($usrFile, $pwFile) {
 		}
 		else {
 			Write-Host "Credentials ('$usrFile', '$pwFile') not found, please introduce your login information." -ForegroundColor Yellow -BackgroundColor Black
-			Write-Host "Notice that whilst you do NOT delete '$credDir' your credentials will be safely secured with Windows Data Protection API (DPAPI) which can only be used in this machine." -fore blue -back black
+			Write-Host "Notice that whilst you do NOT delete '$credDir' your credentials will be safely secured with Windows Data Protection API (DPAPI) which can only be used in this machine." -ForegroundColor Blue -BackgroundColor Black
 			genCredentials "$usrFile" "$pwFile"
 		}				
 		
@@ -221,12 +248,13 @@ function manageShare([string]$action) {
 				$creds = getCredentials "$shareUsrFile" "$sharePwFile"
 
 				$driveLetterName = $driveLetter -Replace ":" # We need to remove the semicolon for New-PSDrive
-				New-PSDrive -Name $driveLetterName -PSProvider FileSystem -Root "$sharePath" -Persist -Scope Global  -Credential $creds > $null	
+				New-PSDrive -Name $driveLetterName -PSProvider FileSystem -Root "$sharePath" -Persist -Scope Global -Credential $creds > $null	
 			}
 			else {
 				# We find next available drive letter and we mount it
 				# 68 - 90 are the Unicode represented characters of letters D..Z
-				$newDriveLetter = (68..90 | ForEach-Object {$L=[char]$_; if ((Get-PSDrive -PSProvider FileSystem).Name -notContains $L) {$L}})[0]
+				$usedDriveLetters = @(Get-PSDrive -PSProvider FileSystem)
+				$newDriveLetter = (68..90 | ForEach-Object {$L=[char]$_; if ($usedDriveLetters.Name -notContains $L) {$L}})[0]
 				
 				Write-Debug "Drive letter is being used already, next available drive letter is: ${newDriveLetter}:"
 
@@ -234,8 +262,9 @@ function manageShare([string]$action) {
 				
 				New-PSDrive -Name $newDriveLetter -PSProvider FileSystem -Root "$sharePath" -Persist -Scope Global -Credential $creds > $null
 
-				# We warn the user in the log that he might want to change the drive letter in the conf
+				# We warn the user in the log that he might want to change the drive letter in the conf			
 				Write-Output "Drive letter: $driveLetter is not available. You might want to change the drive letter in GcloudConf.ps1 to ${newDriveLetter}:" >> $logFile
+				Write-Debug "Drive letter: $driveLetter is not available. You might want to change the drive letter in GcloudConf.ps1 to ${newDriveLetter}:"
 
 				$global:driveLetter = $newDriveLetter + ":"
 			}
@@ -270,16 +299,16 @@ function autoClean() {
 		} 2>> $errorLog 1>> $logFile
 }
 
-function removeOldBackups() {
-	
-	[datetime]$lastWeek = (Get-Date (Get-Date).AddDays($daysToKeepBK * (-1)) -UFormat "%Y-%m-%d") # Cambiamos a negativo el $daysToKeepBK para restar dias
+function removeOldBackups() {		
 	
 	if($useCygWin) # We run the CygWin implementation
 	{
+		Write-Debug "Obtaining files with CygWin"
 		$files = @(cygWinCommand "gsutil -m ls -lR `'$serverPath`'" $true | Select-String -Pattern "\..*$" | Select-String -Pattern "TOTAL" -NotMatch)
 	}
 	else 
 	{
+		Write-Debug "Obtaining files without CygWin"
 		$files = @(gsutil -m ls -lR "$serverPath" | Select-String -Pattern "\..*$" | Select-String -Pattern "TOTAL" -NotMatch)
 	}
 	
@@ -293,9 +322,7 @@ function removeOldBackups() {
 		Write-Output ("Removing old backup files' job started at " + $timeNow) 1>> $logFile
 				
 		&{
-			if ($dryRun) {
-				Write-Output "Running in 'dryRun' mode: No changes will be made."
-			}
+			if ($dryRun) {Write-Output "Running in 'dryRun' mode: No changes will be made."}
 		
 			foreach ($file in $files) {
 				# We force $file into being a string cause otherwise the .trim() function below will sometimes fail
@@ -316,9 +343,12 @@ function removeOldBackups() {
 					# We skip '.vbm' files since they are always the same and don't have date on it																							
 					
 					Write-Debug "FilePath: $filePath | FileName: $fileName | FileDate: $fileDate | LastWeekDate: $lastWeek | FileExt: $fileExt"
+					
+					[datetime]$dateToday = Get-Date -UFormat "%Y-%m-%d"
+					$timeElapsed = New-TimeSpan -Start $fileDate -End $dateToday
 
-					if ($fileDate -lt $lastWeek) {
-						Write-Output "The file: '$fileName' is older than $daysToKeepBK days... Wiping out!"						
+					if ($timeElapsed.Days -gt $daysToKeepBK) {
+						Write-Output "The file: '$fileName' is older than $daysToKeepBK days... Wiping out!"
 										
 						# Moved dryRun down because cygWinCommand() handles $dryRun differently						
 						if($useCygWin) # We run the CygWin implementation
@@ -331,7 +361,12 @@ function removeOldBackups() {
 							Write-Debug "Removing without CygWin: $filePath"
 							gsutil -m -q rm -a "$filePath" # -m makes the operation multithreaded. -q causes gsutil to be quiet, basically: No progress reporting, only errors
 						}					
-					}											
+					}
+					
+					if ($PSBoundParameters['Debug']) {
+						$daysOld = $timeElapsed.Days
+						Write-Debug "The file: '$fileName' is $daysOld days old. So is newer than $daysToKeepBK days... Not going to wipe out!"
+					}																						
 				}				
 			}
 			
@@ -345,10 +380,8 @@ function removeOldBackups() {
 			$isMailingOn = mailLogs "remove" "" $startedTime $timeNow $removeLogFile
 		}
 	}
-	else {Write-Output "Could not get the files" 1>> $errorLog}
-	
+	else {Write-Output "Could not get the files" 1>> $errorLog}	
 }
-
 
 function doUpload() {
 
@@ -358,7 +391,7 @@ function doUpload() {
 	# We wrap all the code so we can send all the stdout and stderr to files in a single line
 	&{
 		if ($dryRun) {
-				Write-Output "Running in 'dryRun' mode: No changes will be made."
+			Write-Output "Running in 'dryRun' mode: No changes will be made."
 		}
 		
 		$timeNow = getTime
@@ -413,11 +446,8 @@ function doUpload() {
 		Write-Output ("Uploading Backups to Gcloud... Job finished at " + $timeNow)
 
 		# We unmount the temporary mounted drive
-		if (-not ($permanentShare)) {
-			manageShare "unmount"
-		}
+		if (-not ($permanentShare)) {manageShare "unmount"}		
 		
-
 	}  2>> $errorLog 1>> $logFile
 	
 	if ($isMailingOn) {
@@ -449,5 +479,5 @@ try {
 	}
 }
 catch [System.IO.DirectoryNotFoundException] {
-	Write-Host 'Please, check that file paths are well configured' -fore red -back black
+	Write-Host 'Please, check that file paths are well configured' -ForegroundColor Red -BackgroundColor Black
 }
