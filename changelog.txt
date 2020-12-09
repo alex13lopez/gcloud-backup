@@ -3,3 +3,6 @@ Ver: 10.5.0 [10/11/2020]
 * Little code optimizations
 * Conf File full rework
 * Now we check whether the main vars are configured or not
+
+Ver: 10.6 [09/12/20]
+*Users may now change smtp configuration like server, port and whether to use SSL or not. 
