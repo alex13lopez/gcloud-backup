@@ -1,7 +1,7 @@
 # Name: Gcloud Backup
 # Author: Alex López <arendevel@gmail.com>
 # Contributor: Iván Blasco
-# Version: 10.5.1
+# Version: 10.6
 
 ########## Var & parms declaration #####################################################
 param(
@@ -158,9 +158,6 @@ function mailLogs($jobType, $server, $startedTime, $endTime, $attachment) {
 		$Body = "Bad news master, <br><br>Something just broke. I attach the error file.<br><br>Greetings, <br><br> <strong>Your automated, Gcloud Backup script.</strong>" 
 	}
 
-	# SMTP Server Setup 
-	$SMTPServer = "smtp.gmail.com" 
-
 	# SMTP Message
 	$SMTPMessage = New-Object System.Net.Mail.MailMessage($EmailFrom,$EmailTo,$Subject,$Body)
 	$SMTPMessage.isBodyHTML = $true
@@ -171,8 +168,8 @@ function mailLogs($jobType, $server, $startedTime, $endTime, $attachment) {
 	}
 
 	# SMTP Client Setup
-	$SMTPClient = New-Object Net.Mail.SmtpClient($SmtpServer, 587) 
-	$SMTPClient.EnableSsl = $true
+	$SMTPClient = New-Object Net.Mail.SmtpClient($SMTPServer, $SMTPPort)
+	$SMTPClient.EnableSsl = $SMTPEnableSSL
 	$SMTPClient.Credentials = New-Object System.Net.NetworkCredential($cred.UserName, $cred.Password); 
 	$SMTPClient.Send($SMTPMessage)
 	

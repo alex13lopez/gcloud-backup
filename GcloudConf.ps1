@@ -1,4 +1,4 @@
-# Conf File Version: 2.0
+# Conf File Version: 2.1
 
 # General options	
 $global:dateLogs          = Get-Date -UFormat '%Y%m%d'
@@ -30,6 +30,9 @@ $global:mailUsrFile     = Join-Path -Path $credDir -ChildPath 'MailUsername'
 $global:mailPwFile      = Join-Path -Path $credDir -ChildPath 'MailPassword'
 $global:isMailingOn     = $false
 $global:mailTo          = ''
+$global:SMTPServer      = 'smtp.gmail.com' # Your smtp server. Default is gmail, since we assume that if you use GCP, you use Gmail mail servers as well
+$global:SMTPPort        = 587 # Default SMTP port that uses TLS/SSL
+$global:SMTPEnableSSL   = $true # Default: $true. We want to use a ciphered connection, don't we?
 
 # CygWin Options
 # We moved the instructions on how to use CygWin to the README.md because some Anti-Virus detected the instructions as Obfuscated Code 
