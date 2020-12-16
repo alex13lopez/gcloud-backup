@@ -33,8 +33,10 @@ This project provides an easy-to-setup and ready-to-deploy script to sync backup
   * -confFile: You may specify a different config file in case you're testing something out or in case you'd like to have different configurations for different servers or remote shares.
 
 # HOW TO USE CYGWIN
-The CygWin implementation must have the Gcloud SDK configured, plus all the dependencies the SDK has, how to prepare CygWin to work properly:
+The CygWin implementation must have the Gcloud SDK configured, plus all the dependencies the SDK has. How to prepare CygWin to work properly:
+
 **IMPORTANT!** In case you have an old installation in the OS of SDK you have to remove it from the Path (and uninstall it if you wish)
+
 * Packages for cygwin: wget, curl, gcc-core, python27, python27-devel, python27-pip, python27-setuptools
 * Download the SDK with `wget https://dl.google.com/dl/cloudsdk/channels/rapid/downloads/google-cloud-sdk-287.0.0-linux-x86_64.tar.gz`
 * Extract with `tar -zxvf google-cloud-sdk-287.0.0-linux-x86_64.tar.gz`
